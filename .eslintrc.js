@@ -11,13 +11,16 @@ module.exports = {
     'plugin:prettier/recommended',
   ],
   rules: {
-    // eslintConfig - rules에 다음과 같이 추가
     'prettier/prettier': [
       'error',
       {
         endOfLine: 'auto',
       },
     ],
+    '@typescript-eslint/interface-name-prefix': 'off',
+    '@typescript-eslint/explicit-function-return-type': 'off',
+    '@typescript-eslint/explicit-module-boundary-types': 'off',
+    '@typescript-eslint/no-explicit-any': 'off',
   },
   root: true,
   env: {
@@ -25,10 +28,4 @@ module.exports = {
     jest: true,
   },
   ignorePatterns: ['.eslintrc.js'],
-  rules: {
-    '@typescript-eslint/interface-name-prefix': 'off',
-    '@typescript-eslint/explicit-function-return-type': 'off',
-    '@typescript-eslint/explicit-module-boundary-types': 'off',
-    '@typescript-eslint/no-explicit-any': 'off',
-  },
 };

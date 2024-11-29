@@ -3,14 +3,13 @@ import { Injectable } from '@nestjs/common';
 import { UnauthorizedException } from '@nestjs/common';
 
 import { Repository } from 'typeorm';
-import { TokenEntity } from './entities/token.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-
+import { RefreshToken } from './entities/refresh-token.entity';
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectRepository(TokenEntity)
-    private readonly tokenRepository: Repository<TokenEntity>,
+    @InjectRepository(RefreshToken)
+    private readonly tokenRepository: Repository<RefreshToken>,
   ) {}
 
   async getValidToken(
@@ -18,7 +17,7 @@ export class AuthService {
     service: 'spotify' | 'youtube',
   ): Promise<string> {
     const token = await this.tokenRepository.findOne({
-      where: { userId, service },
+      where: { user: { id: userId }, service },
     });
 
     if (!token) {
@@ -32,7 +31,7 @@ export class AuthService {
     return token.accessToken;
   }
 
-  private isTokenExpired(token: TokenEntity): boolean {
+  private isTokenExpired(token: RefreshToken): boolean {
     return new Date() >= token.expiresAt;
   }
 }
