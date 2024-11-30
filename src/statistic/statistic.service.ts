@@ -1,28 +1,24 @@
 import { Injectable } from '@nestjs/common';
-import { CreateStatisticInput } from './dto/create-statistic.input';
+import { SaveStatisticInput } from './dto/save-statistic.input';
 import { UpdateStatisticInput } from './dto/update-statistic.input';
 
 @Injectable()
 export class StatisticService {
-  create(createStatisticInput: CreateStatisticInput) {
-    console.log(createStatisticInput);
+  create(saveStatisticInput: SaveStatisticInput) {
+    console.log(saveStatisticInput);
     return 'This action adds a new statistic';
   }
 
-  findAll() {
-    return `This action returns all statistic`;
+  findOne(userId: string) {
+    return `This action returns a #${userId} statistic`;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} statistic`;
-  }
-
-  update(id: number, updateStatisticInput: UpdateStatisticInput) {
+  update(userId: string, updateStatisticInput: UpdateStatisticInput) {
     console.log(updateStatisticInput);
-    return `This action updates a #${id} statistic`;
+    return `This action updates a #${userId} statistic`;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} statistic`;
+  remove(userId: string) {
+    return `This action removes a #${userId} statistic`;
   }
 }

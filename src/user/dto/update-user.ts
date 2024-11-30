@@ -12,8 +12,5 @@ export class UpdateUserInput {
   password?: string;
 
   @Field(() => String, { nullable: true })
-  password2?: string;
-
-  @Field(() => String, { nullable: true })
   profileImg?: string;
 }

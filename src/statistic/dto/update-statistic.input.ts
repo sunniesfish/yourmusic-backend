@@ -1,8 +1,17 @@
-import { CreateStatisticInput } from './create-statistic.input';
-import { InputType, Field, Int, PartialType } from '@nestjs/graphql';
+import { InputType, Field, PartialType, ID } from '@nestjs/graphql';
+import { SaveStatisticInput } from './save-statistic.input';
 
 @InputType()
-export class UpdateStatisticInput extends PartialType(CreateStatisticInput) {
-  @Field(() => Int)
-  id: number;
+export class UpdateStatisticInput extends PartialType(SaveStatisticInput) {
+  @Field(() => ID, { nullable: false })
+  userId: string;
+
+  @Field(() => String, { nullable: true })
+  albumRankJson?: string;
+
+  @Field(() => String, { nullable: true })
+  genreRankJson?: string;
+
+  @Field(() => String, { nullable: true })
+  artistRankJson?: string;
 }

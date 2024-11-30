@@ -10,6 +10,7 @@ import { PlaylistModule } from './playlist/playlist.module';
 import { AuthResolver } from './auth/auth.resolver';
 import { StatisticModule } from './statistic/statistic.module';
 import { AuthModule } from './auth/auth.module';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { AuthModule } from './auth/auth.module';
       sortSchema: true,
       playground: true,
     }),
+    JwtModule,
     UserModule,
     PlaylistModule,
     StatisticModule,
