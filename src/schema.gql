@@ -1,0 +1,81 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+input CreateStatisticInput {
+  """Example field (placeholder)"""
+  exampleField: Int!
+}
+
+type Mutation {
+  convertToSpotifyPlaylist(playlistJSON: PlaylistJSONInput!): Boolean!
+  convertToYoutubePlaylist(playlistJSON: PlaylistJSONInput!): Boolean!
+  createStatistic(createStatisticInput: CreateStatisticInput!): Statistic!
+  readPlaylist(link: String!): [PlaylistJSON!]!
+  removePlaylist(id: Int!): Playlist!
+  removeStatistic(id: Int!): Statistic!
+  savePlaylist(savePlaylistInput: SavePlaylistInput!): Playlist!
+  updateStatistic(updateStatisticInput: UpdateStatisticInput!): Statistic!
+  updateUser(updateUserInput: UpdateUserInput!): Boolean!
+}
+
+type Playlist {
+  id: ID!
+  listJson: String!
+  name: String!
+  user: User!
+}
+
+type PlaylistJSON {
+  album: String!
+  artist: String!
+  thumbnail: String!
+  title: String!
+}
+
+input PlaylistJSONInput {
+  album: String!
+  artist: String!
+  thumbnail: String!
+  title: String!
+}
+
+type Query {
+  playlist(id: Int!): Playlist!
+  statistic(id: Int!): Statistic!
+  user(id: ID!): User!
+}
+
+input SavePlaylistInput {
+  listJson: String!
+  name: String!
+  userId: String!
+}
+
+type Statistic {
+  albumRankJson: String!
+  artistRankJson: String!
+  genreRankJson: String!
+  user: User!
+  userId: ID!
+}
+
+input UpdateStatisticInput {
+  """Example field (placeholder)"""
+  exampleField: Int
+  id: Int!
+}
+
+input UpdateUserInput {
+  id: String!
+  name: String
+  password: String
+  password2: String
+  profileImg: String
+}
+
+type User {
+  id: ID!
+  name: String!
+  profileImg: String
+}

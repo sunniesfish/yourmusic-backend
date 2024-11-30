@@ -7,7 +7,9 @@ import databaseConfig from './config/database.config';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PlaylistModule } from './playlist/playlist.module';
-import { StatisticModule } from './statistics/entities/statistic/statistic.module';
+import { AuthResolver } from './auth/auth.resolver';
+import { StatisticModule } from './statistic/statistic.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -30,8 +32,9 @@ import { StatisticModule } from './statistics/entities/statistic/statistic.modul
     UserModule,
     PlaylistModule,
     StatisticModule,
+    AuthModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [AuthResolver],
 })
 export class AppModule {}

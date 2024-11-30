@@ -1,10 +1,31 @@
 import { Injectable } from '@nestjs/common';
-import { CreatePlaylistInput } from '../../dto/create-playlist.input';
-import { UpdatePlaylistInput } from '../../dto/update-playlist.input';
-
+import { SavePlaylistInput } from './dto/save-playlist.input';
+import { PlaylistJSON } from './dto/playlist-json.input';
 @Injectable()
 export class PlaylistService {
-  create(createPlaylistInput: CreatePlaylistInput) {
+  convertToSpotifyPlaylist(playlistJSON: PlaylistJSON) {
+    console.log(playlistJSON);
+    return true;
+  }
+
+  convertToYoutubePlaylist(playlistJSON: PlaylistJSON) {
+    console.log(playlistJSON);
+    return true;
+  }
+  read(link: string) {
+    console.log(link);
+    const playlistJSON: PlaylistJSON[] = [];
+    playlistJSON.push({
+      title: 'test',
+      artist: 'test',
+      album: 'test',
+      thumbnail: 'test',
+    });
+    return playlistJSON;
+  }
+
+  create(savePlaylistInput: SavePlaylistInput) {
+    console.log(savePlaylistInput);
     return 'This action adds a new playlist';
   }
 
@@ -14,10 +35,6 @@ export class PlaylistService {
 
   findOne(id: number) {
     return `This action returns a #${id} playlist`;
-  }
-
-  update(id: number, updatePlaylistInput: UpdatePlaylistInput) {
-    return `This action updates a #${id} playlist`;
   }
 
   remove(id: number) {

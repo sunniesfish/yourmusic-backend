@@ -1,42 +1,53 @@
 import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
 import { PlaylistService } from './playlist.service';
-import { Playlist } from '../../entities/playlist.entity';
-import { CreatePlaylistInput } from '../../dto/create-playlist.input';
-import { UpdatePlaylistInput } from '../../dto/update-playlist.input';
+import { Playlist } from './entities/playlist.entity';
+import { PlaylistJSON } from './dto/playlist-json.input';
+import { SavePlaylistInput } from './dto/save-playlist.input';
 
 @Resolver(() => Playlist)
 export class PlaylistResolver {
   constructor(private readonly playlistService: PlaylistService) {}
 
   @Mutation(() => Playlist)
-  createPlaylist(
-    @Args('createPlaylistInput') createPlaylistInput: CreatePlaylistInput,
+  async savePlaylist(
+    @Args('savePlaylistInput') savePlaylistInput: SavePlaylistInput,
   ) {
-    return this.playlistService.create(createPlaylistInput);
+    return await this.playlistService.create(savePlaylistInput);
   }
 
   @Query(() => [Playlist], { name: 'playlist' })
-  findAll() {
-    return this.playlistService.findAll();
+  async findAll() {
+    return await this.playlistService.findAll();
   }
 
   @Query(() => Playlist, { name: 'playlist' })
-  findOne(@Args('id', { type: () => Int }) id: number) {
-    return this.playlistService.findOne(id);
+  async findOne(@Args('id', { type: () => Int }) id: number) {
+    return await this.playlistService.findOne(id);
   }
 
   @Mutation(() => Playlist)
-  updatePlaylist(
-    @Args('updatePlaylistInput') updatePlaylistInput: UpdatePlaylistInput,
+  async removePlaylist(@Args('id', { type: () => Int }) id: number) {
+    return await this.playlistService.remove(id);
+  }
+
+  @Mutation(() => [PlaylistJSON])
+  readPlaylist(@Args('link', { type: () => String }) link: string) {
+    return this.playlistService.read(link);
+  }
+
+  @Mutation(() => Boolean)
+  async convertToSpotifyPlaylist(
+    @Args('playlistJSON', { type: () => PlaylistJSON })
+    playlistJSON: PlaylistJSON,
   ) {
-    return this.playlistService.update(
-      updatePlaylistInput.id,
-      updatePlaylistInput,
-    );
+    return await this.playlistService.convertToSpotifyPlaylist(playlistJSON);
   }
 
-  @Mutation(() => Playlist)
-  removePlaylist(@Args('id', { type: () => Int }) id: number) {
-    return this.playlistService.remove(id);
+  @Mutation(() => Boolean)
+  async convertToYoutubePlaylist(
+    @Args('playlistJSON', { type: () => PlaylistJSON })
+    playlistJSON: PlaylistJSON,
+  ) {
+    return await this.playlistService.convertToYoutubePlaylist(playlistJSON);
   }
 }

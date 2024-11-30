@@ -9,7 +9,9 @@ export class StatisticResolver {
   constructor(private readonly statisticService: StatisticService) {}
 
   @Mutation(() => Statistic)
-  createStatistic(@Args('createStatisticInput') createStatisticInput: CreateStatisticInput) {
+  createStatistic(
+    @Args('createStatisticInput') createStatisticInput: CreateStatisticInput,
+  ) {
     return this.statisticService.create(createStatisticInput);
   }
 
@@ -24,8 +26,13 @@ export class StatisticResolver {
   }
 
   @Mutation(() => Statistic)
-  updateStatistic(@Args('updateStatisticInput') updateStatisticInput: UpdateStatisticInput) {
-    return this.statisticService.update(updateStatisticInput.id, updateStatisticInput);
+  updateStatistic(
+    @Args('updateStatisticInput') updateStatisticInput: UpdateStatisticInput,
+  ) {
+    return this.statisticService.update(
+      updateStatisticInput.id,
+      updateStatisticInput,
+    );
   }
 
   @Mutation(() => Statistic)

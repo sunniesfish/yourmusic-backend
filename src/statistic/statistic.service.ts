@@ -5,6 +5,7 @@ import { UpdateStatisticInput } from './dto/update-statistic.input';
 @Injectable()
 export class StatisticService {
   create(createStatisticInput: CreateStatisticInput) {
+    console.log(createStatisticInput);
     return 'This action adds a new statistic';
   }
 
@@ -17,6 +18,7 @@ export class StatisticService {
   }
 
   update(id: number, updateStatisticInput: UpdateStatisticInput) {
+    console.log(updateStatisticInput);
     return `This action updates a #${id} statistic`;
   }
 
