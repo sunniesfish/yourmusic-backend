@@ -1,7 +1,8 @@
-import { Field, ID } from '@nestjs/graphql';
+import { Field, ID, ObjectType } from '@nestjs/graphql';
 import { User } from 'src/user/entities/user.entity';
 import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 
+@ObjectType()
 @Entity()
 export class RefreshToken {
   @Field(() => ID)
