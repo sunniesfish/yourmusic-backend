@@ -1,4 +1,4 @@
-import { Args, ID, Mutation, Resolver } from '@nestjs/graphql';
+import { Args, Mutation, Resolver } from '@nestjs/graphql';
 import { AuthService } from './service/auth.service';
 import { UserService } from 'src/user/service/user.service';
 import { SignInInput } from './dto/sign-in.input';
@@ -6,6 +6,8 @@ import { SignUpInput } from './dto/sign-up.input';
 import { User } from 'src/user/entities/user.entity';
 import { CurrentUser } from '../global/decorators/current-user';
 import { ChangePasswordInput } from './dto/change-password.input';
+import { ForbiddenException } from '@nestjs/common';
+import { IsPublic } from 'src/global/decorators/ispublic';
 
 @Resolver()
 export class AuthResolver {
@@ -14,11 +16,13 @@ export class AuthResolver {
     private readonly userService: UserService,
   ) {}
 
+  @IsPublic()
   @Mutation(() => User)
   async signUp(@Args('signUpInput') signUpInput: SignUpInput) {
     return await this.userService.create(signUpInput);
   }
 
+  @IsPublic()
   @Mutation(() => User)
   async signIn(@Args('signInInput') signInInput: SignInInput) {
     return await this.authService.signIn(signInInput);
@@ -26,10 +30,13 @@ export class AuthResolver {
 
   @Mutation(() => Boolean)
   async checkPassword(
-    @Args('userId', { type: () => ID }) userId: string,
-    @Args('password') password: string,
+    @CurrentUser() user: User,
+    @Args('input') input: ChangePasswordInput,
   ) {
-    return await this.authService.checkPassword(userId, password);
+    if (user.id !== input.userId) {
+      throw new ForbiddenException();
+    }
+    return await this.authService.checkPassword(user.id, input.password);
   }
 
   @Mutation(() => User)
@@ -37,6 +44,9 @@ export class AuthResolver {
     @CurrentUser() user: User,
     @Args('input') input: ChangePasswordInput,
   ) {
+    if (user.id !== input.userId) {
+      throw new ForbiddenException();
+    }
     return await this.authService.changePassword(input);
   }
 }

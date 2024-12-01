@@ -1,24 +1,36 @@
 import { Injectable } from '@nestjs/common';
 import { SaveStatisticInput } from './dto/save-statistic.input';
 import { UpdateStatisticInput } from './dto/update-statistic.input';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Statistic } from './entities/statistic.entity';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class StatisticService {
-  create(saveStatisticInput: SaveStatisticInput) {
-    console.log(saveStatisticInput);
-    return 'This action adds a new statistic';
+  constructor(
+    @InjectRepository(Statistic)
+    private readonly statisticRepository: Repository<Statistic>,
+  ) {}
+
+  async create(saveStatisticInput: SaveStatisticInput, userId: string) {
+    const statistic = this.statisticRepository.create({
+      ...saveStatisticInput,
+      user: { id: userId },
+    });
+    return await this.statisticRepository.save(statistic);
   }
 
-  findOne(userId: string) {
-    return `This action returns a #${userId} statistic`;
+  async findOne(userId: string) {
+    return await this.statisticRepository.findOne({
+      where: { user: { id: userId } },
+    });
   }
 
-  update(userId: string, updateStatisticInput: UpdateStatisticInput) {
-    console.log(updateStatisticInput);
-    return `This action updates a #${userId} statistic`;
+  async update(userId: string, updateStatisticInput: UpdateStatisticInput) {
+    return await this.statisticRepository.update(userId, updateStatisticInput);
   }
 
-  remove(userId: string) {
-    return `This action removes a #${userId} statistic`;
+  async remove(userId: string) {
+    return await this.statisticRepository.delete(userId);
   }
 }

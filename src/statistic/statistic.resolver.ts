@@ -3,15 +3,22 @@ import { StatisticService } from './statistic.service';
 import { Statistic } from './entities/statistic.entity';
 import { SaveStatisticInput } from './dto/save-statistic.input';
 import { UpdateStatisticInput } from './dto/update-statistic.input';
+import { User } from 'src/user/entities/user.entity';
+import { CurrentUser } from 'src/global/decorators/current-user';
+import { ForbiddenException } from '@nestjs/common';
 @Resolver(() => Statistic)
 export class StatisticResolver {
   constructor(private readonly statisticService: StatisticService) {}
 
   @Mutation(() => Statistic)
   saveStatistic(
+    @CurrentUser() user: User,
     @Args('saveStatisticInput') saveStatisticInput: SaveStatisticInput,
   ) {
-    return this.statisticService.create(saveStatisticInput);
+    if (user.id === undefined) {
+      throw new ForbiddenException();
+    }
+    return this.statisticService.create(saveStatisticInput, user.id);
   }
 
   @Query(() => Statistic, { name: 'statistic' })
