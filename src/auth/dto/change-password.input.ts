@@ -5,7 +5,7 @@ export class ChangePasswordInput {
   @IsString()
   @IsNotEmpty()
   @Field(() => ID)
-  userId: string;
+  id: string;
 
   @IsString()
   @IsNotEmpty()

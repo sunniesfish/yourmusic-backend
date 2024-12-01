@@ -2,19 +2,23 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
-input CreateStatisticInput {
-  """Example field (placeholder)"""
-  exampleField: Int!
+input ChangePasswordInput {
+  id: ID!
+  password: String!
 }
 
 type Mutation {
+  changePassword(input: ChangePasswordInput!): User!
+  checkPassword(input: ChangePasswordInput!): Boolean!
   convertToSpotifyPlaylist(playlistJSON: PlaylistJSONInput!): Boolean!
   convertToYoutubePlaylist(playlistJSON: PlaylistJSONInput!): Boolean!
-  createStatistic(createStatisticInput: CreateStatisticInput!): Statistic!
   readPlaylist(link: String!): [PlaylistJSON!]!
   removePlaylist(id: Int!): Playlist!
-  removeStatistic(id: Int!): Statistic!
+  removeStatistic(userId: ID!): Statistic!
   savePlaylist(savePlaylistInput: SavePlaylistInput!): Playlist!
+  saveStatistic(saveStatisticInput: SaveStatisticInput!): Statistic!
+  signIn(signInInput: SignInInput!): User!
+  signUp(signUpInput: SignUpInput!): User!
   updateStatistic(updateStatisticInput: UpdateStatisticInput!): Statistic!
   updateUser(updateUserInput: UpdateUserInput!): Boolean!
 }
@@ -27,22 +31,22 @@ type Playlist {
 }
 
 type PlaylistJSON {
-  album: String!
-  artist: String!
-  thumbnail: String!
-  title: String!
+  album: String
+  artist: String
+  thumbnail: String
+  title: String
 }
 
 input PlaylistJSONInput {
-  album: String!
-  artist: String!
-  thumbnail: String!
-  title: String!
+  album: String
+  artist: String
+  thumbnail: String
+  title: String
 }
 
 type Query {
   playlist(id: Int!): Playlist!
-  statistic(id: Int!): Statistic!
+  statistic(userId: ID!): Statistic!
   user(id: ID!): User!
 }
 
@@ -50,6 +54,25 @@ input SavePlaylistInput {
   listJson: String!
   name: String!
   userId: String!
+}
+
+input SaveStatisticInput {
+  albumRankJson: String!
+  artistRankJson: String!
+  genreRankJson: String!
+  userId: ID!
+}
+
+input SignInInput {
+  id: String!
+  password: String!
+}
+
+input SignUpInput {
+  id: String!
+  name: String!
+  password: String!
+  profileImg: String
 }
 
 type Statistic {
@@ -61,16 +84,15 @@ type Statistic {
 }
 
 input UpdateStatisticInput {
-  """Example field (placeholder)"""
-  exampleField: Int
-  id: Int!
+  albumRankJson: String
+  artistRankJson: String
+  genreRankJson: String
+  userId: ID!
 }
 
 input UpdateUserInput {
   id: String!
   name: String
-  password: String
-  password2: String
   profileImg: String
 }
 

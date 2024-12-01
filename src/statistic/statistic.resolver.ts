@@ -3,7 +3,7 @@ import { StatisticService } from './statistic.service';
 import { Statistic } from './entities/statistic.entity';
 import { SaveStatisticInput } from './dto/save-statistic.input';
 import { UpdateStatisticInput } from './dto/update-statistic.input';
-import { User } from 'src/user/entities/user.entity';
+import { UserInput } from 'src/user/dto/user.input';
 import { CurrentUser } from 'src/global/decorators/current-user';
 import { ForbiddenException } from '@nestjs/common';
 @Resolver(() => Statistic)
@@ -12,7 +12,7 @@ export class StatisticResolver {
 
   @Mutation(() => Statistic)
   saveStatistic(
-    @CurrentUser() user: User,
+    @CurrentUser() user: UserInput,
     @Args('saveStatisticInput') saveStatisticInput: SaveStatisticInput,
   ) {
     if (user.id === undefined) {

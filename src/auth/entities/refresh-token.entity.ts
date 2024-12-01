@@ -1,6 +1,12 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
 import { User } from 'src/user/entities/user.entity';
-import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  OneToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 @ObjectType()
 @Entity()
@@ -9,7 +15,7 @@ export class RefreshToken {
   @PrimaryGeneratedColumn()
   id: string;
 
-  @Field()
+  @Field(() => String)
   @Column({
     type: 'varchar',
     nullable: false,
@@ -19,5 +25,6 @@ export class RefreshToken {
 
   @Field(() => User)
   @OneToOne(() => User, (user) => user.id, { eager: true })
+  @JoinColumn({ name: 'user_id' })
   user: User;
 }

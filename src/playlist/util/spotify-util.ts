@@ -4,7 +4,7 @@ import { scraper } from './scraper';
 export const readSpotifyPlaylist = async (
   link: string,
 ): Promise<PlaylistJSON[]> => {
-  return scraper(link, 'div.tracklist-col', async () => {
+  return scraper(link, 'div.contentSpacing', async () => {
     const trackRows = document.querySelectorAll(
       '[data-testid="tracklist-row"]',
     );

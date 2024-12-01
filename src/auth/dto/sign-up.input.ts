@@ -1,4 +1,4 @@
-import { Field } from '@nestjs/graphql';
+import { Field, InputType } from '@nestjs/graphql';
 import {
   IsOptional,
   IsString,
@@ -7,6 +7,7 @@ import {
   IsNotEmpty,
 } from 'class-validator';
 
+@InputType()
 export class SignUpInput {
   @IsNotEmpty({ message: 'ID is required' })
   @IsString()

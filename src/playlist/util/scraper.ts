@@ -17,13 +17,12 @@ export const scraper = async (
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
       defaultViewport: { width: 1920, height: 1080 },
-      timeout: 10000,
     });
     const page = await browser.newPage();
     await page.goto(link, { waitUntil: 'networkidle0' });
     await page.waitForSelector(selector);
 
-    const data = await page.evaluate(() => extractDataFn());
+    const data = await page.evaluate(extractDataFn);
 
     return data;
   } catch (error) {

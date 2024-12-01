@@ -1,8 +1,7 @@
-import { InputType, Field, ID, PartialType } from '@nestjs/graphql';
-import { Statistic } from '../entities/statistic.entity';
+import { InputType, Field, ID } from '@nestjs/graphql';
 
 @InputType()
-export class SaveStatisticInput extends PartialType(Statistic) {
+export class SaveStatisticInput {
   @Field(() => ID, { nullable: false })
   userId: string;
 

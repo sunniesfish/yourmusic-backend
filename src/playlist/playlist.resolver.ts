@@ -3,10 +3,10 @@ import { PlaylistService } from './playlist.service';
 import { Playlist } from './entities/playlist.entity';
 import { PlaylistJSON } from './dto/playlist-json.input';
 import { SavePlaylistInput } from './dto/save-playlist.input';
-import { User } from 'src/user/entities/user.entity';
 import { CurrentUser } from 'src/global/decorators/current-user';
 import { ForbiddenException } from '@nestjs/common';
 import { IsPublic } from 'src/global/decorators/ispublic';
+import { UserInput } from 'src/user/dto/user.input';
 
 @Resolver(() => Playlist)
 export class PlaylistResolver {
@@ -20,7 +20,7 @@ export class PlaylistResolver {
   }
 
   @Query(() => [Playlist], { name: 'playlist' })
-  async findAll(@CurrentUser() user: User) {
+  async findAll(@CurrentUser() user: UserInput) {
     if (user.id === undefined) {
       throw new ForbiddenException();
     }
@@ -30,7 +30,7 @@ export class PlaylistResolver {
   @Query(() => Playlist, { name: 'playlist' })
   async findOne(
     @Args('id', { type: () => Int }) id: number,
-    @CurrentUser() user: User,
+    @CurrentUser() user: UserInput,
   ) {
     if (user.id === undefined) {
       throw new ForbiddenException();
@@ -41,7 +41,7 @@ export class PlaylistResolver {
   @Mutation(() => Playlist)
   async removePlaylist(
     @Args('id', { type: () => Int }) id: number,
-    @CurrentUser() user: User,
+    @CurrentUser() user: UserInput,
   ) {
     if (user.id === undefined) {
       throw new ForbiddenException();

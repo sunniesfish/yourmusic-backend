@@ -8,6 +8,7 @@ import { CurrentUser } from '../global/decorators/current-user';
 import { ChangePasswordInput } from './dto/change-password.input';
 import { ForbiddenException } from '@nestjs/common';
 import { IsPublic } from 'src/global/decorators/ispublic';
+import { UserInput } from 'src/user/dto/user.input';
 
 @Resolver()
 export class AuthResolver {
@@ -30,10 +31,10 @@ export class AuthResolver {
 
   @Mutation(() => Boolean)
   async checkPassword(
-    @CurrentUser() user: User,
+    @CurrentUser() user: UserInput,
     @Args('input') input: ChangePasswordInput,
   ) {
-    if (user.id !== input.userId) {
+    if (user.id !== input.id) {
       throw new ForbiddenException();
     }
     return await this.authService.checkPassword(user.id, input.password);
@@ -41,10 +42,10 @@ export class AuthResolver {
 
   @Mutation(() => User)
   async changePassword(
-    @CurrentUser() user: User,
+    @CurrentUser() user: UserInput,
     @Args('input') input: ChangePasswordInput,
   ) {
-    if (user.id !== input.userId) {
+    if (user.id !== input.id) {
       throw new ForbiddenException();
     }
     return await this.authService.changePassword(input);

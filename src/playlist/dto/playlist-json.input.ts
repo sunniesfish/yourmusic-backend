@@ -3,15 +3,15 @@ import { Field, InputType, ObjectType } from '@nestjs/graphql';
 @ObjectType('PlaylistJSON')
 @InputType('PlaylistJSONInput')
 export class PlaylistJSON {
-  @Field()
+  @Field({ nullable: true })
   title?: string;
 
-  @Field()
+  @Field({ nullable: true })
   artist?: string;
 
-  @Field()
+  @Field({ nullable: true })
   album?: string;
 
-  @Field()
+  @Field({ nullable: true })
   thumbnail?: string;
 }
