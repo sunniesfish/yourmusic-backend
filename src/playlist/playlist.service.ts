@@ -16,12 +16,12 @@ export class PlaylistService {
     private readonly dataSource: DataSource,
   ) {}
 
-  convertToSpotifyPlaylist(playlistJSON: PlaylistJSON) {
+  convertToSpotifyPlaylist(playlistJSON: PlaylistJSON[]) {
     console.log(playlistJSON);
     return true;
   }
 
-  convertToYoutubePlaylist(playlistJSON: PlaylistJSON) {
+  convertToYoutubePlaylist(playlistJSON: PlaylistJSON[]) {
     console.log(playlistJSON);
     return true;
   }

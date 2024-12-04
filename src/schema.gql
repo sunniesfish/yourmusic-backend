@@ -10,8 +10,8 @@ input ChangePasswordInput {
 type Mutation {
   changePassword(input: ChangePasswordInput!): User!
   checkPassword(input: ChangePasswordInput!): Boolean!
-  convertToSpotifyPlaylist(playlistJSON: PlaylistJSONInput!): Boolean!
-  convertToYoutubePlaylist(playlistJSON: PlaylistJSONInput!): Boolean!
+  convertToSpotifyPlaylist(listJSON: [PlaylistJSONInput!]!): Boolean!
+  convertToYoutubePlaylist(listJSON: [PlaylistJSONInput!]!): Boolean!
   readPlaylist(link: String!): [PlaylistJSON!]!
   removePlaylist(id: Int!): Playlist!
   removeStatistic(userId: ID!): Statistic!
@@ -25,7 +25,7 @@ type Mutation {
 
 type Playlist {
   id: ID!
-  listJson: String!
+  listJson: [PlaylistJSON!]!
   name: String!
   user: User!
 }
@@ -46,6 +46,7 @@ input PlaylistJSONInput {
 
 type Query {
   playlist(id: Int!): Playlist!
+  playlists: [Playlist!]!
   statistic(userId: ID!): Statistic!
   user(id: ID!): User!
 }

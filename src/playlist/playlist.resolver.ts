@@ -19,7 +19,7 @@ export class PlaylistResolver {
     return await this.playlistService.create(savePlaylistInput);
   }
 
-  @Query(() => [Playlist], { name: 'playlist' })
+  @Query(() => [Playlist], { name: 'playlists' })
   async findAll(@CurrentUser() user: UserInput) {
     if (user.id === undefined) {
       throw new ForbiddenException();
@@ -58,18 +58,18 @@ export class PlaylistResolver {
   @IsPublic()
   @Mutation(() => Boolean)
   async convertToSpotifyPlaylist(
-    @Args('playlistJSON', { type: () => PlaylistJSON })
-    playlistJSON: PlaylistJSON,
+    @Args('listJSON', { type: () => [PlaylistJSON] })
+    listJSON: PlaylistJSON[],
   ) {
-    return await this.playlistService.convertToSpotifyPlaylist(playlistJSON);
+    return await this.playlistService.convertToSpotifyPlaylist(listJSON);
   }
 
   @IsPublic()
   @Mutation(() => Boolean)
   async convertToYoutubePlaylist(
-    @Args('playlistJSON', { type: () => PlaylistJSON })
-    playlistJSON: PlaylistJSON,
+    @Args('listJSON', { type: () => [PlaylistJSON] })
+    listJSON: PlaylistJSON[],
   ) {
-    return await this.playlistService.convertToYoutubePlaylist(playlistJSON);
+    return await this.playlistService.convertToYoutubePlaylist(listJSON);
   }
 }
