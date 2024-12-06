@@ -1,4 +1,4 @@
-import { Args, ID, Info, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { Args, Info, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UserService } from '../service/user.service';
 import { User } from '../entities/user.entity';
 import { UpdateUserInput } from '../dto/update-user.input';
@@ -14,11 +14,10 @@ export class UserResolver {
 
   @Query(() => User)
   async user(
-    @Args('id', { type: () => ID }) id: string,
     @Info() info: GraphQLResolveInfo,
     @CurrentUser() user: UserInput,
   ): Promise<User> {
-    if (user.id !== id) {
+    if (!user.id) {
       throw new ForbiddenException();
     }
 
@@ -38,7 +37,7 @@ export class UserResolver {
       );
 
     return await this.userService.findOne(
-      id,
+      user.id,
       Object.keys(requestedFields) as Array<keyof User>,
     );
   }

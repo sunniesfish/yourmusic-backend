@@ -1,4 +1,5 @@
 import { InputType, Field } from '@nestjs/graphql';
+import { PlaylistJSON } from './playlist-json.input';
 
 @InputType()
 export class SavePlaylistInput {
@@ -8,6 +9,6 @@ export class SavePlaylistInput {
   @Field()
   name: string;
 
-  @Field()
-  listJson: string;
+  @Field(() => [PlaylistJSON])
+  listJson: PlaylistJSON[];
 }

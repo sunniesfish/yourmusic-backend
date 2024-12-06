@@ -7,24 +7,37 @@ import { CurrentUser } from 'src/global/decorators/current-user';
 import { ForbiddenException } from '@nestjs/common';
 import { IsPublic } from 'src/global/decorators/ispublic';
 import { UserInput } from 'src/user/dto/user.input';
+import { PlaylistsResponse } from './dto/playlists-response';
 
 @Resolver(() => Playlist)
 export class PlaylistResolver {
   constructor(private readonly playlistService: PlaylistService) {}
 
-  @Mutation(() => Playlist)
+  @Mutation(() => Boolean)
   async savePlaylist(
+    @CurrentUser() user: UserInput,
     @Args('savePlaylistInput') savePlaylistInput: SavePlaylistInput,
   ) {
-    return await this.playlistService.create(savePlaylistInput);
+    if (user.id === undefined || savePlaylistInput.userId !== user.id) {
+      throw new ForbiddenException();
+    }
+    await this.playlistService.create(savePlaylistInput);
+    return true;
   }
 
-  @Query(() => [Playlist], { name: 'playlists' })
-  async findAll(@CurrentUser() user: UserInput) {
+  @Query(() => PlaylistsResponse, {
+    name: 'playlists',
+  })
+  async findAll(
+    @CurrentUser() user: UserInput,
+    @Args('page', { type: () => Int }) page: number,
+    @Args('limit', { type: () => Int }) limit: number,
+    @Args('orderBy', { type: () => String }) orderBy: string,
+  ) {
     if (user.id === undefined) {
       throw new ForbiddenException();
     }
-    return await this.playlistService.findAll(user.id);
+    return await this.playlistService.findAll(user.id, page, limit, orderBy);
   }
 
   @Query(() => Playlist, { name: 'playlist' })

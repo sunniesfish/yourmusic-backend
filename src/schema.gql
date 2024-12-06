@@ -7,6 +7,11 @@ input ChangePasswordInput {
   password: String!
 }
 
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
 type Mutation {
   changePassword(input: ChangePasswordInput!): User!
   checkPassword(input: ChangePasswordInput!): Boolean!
@@ -15,15 +20,17 @@ type Mutation {
   readPlaylist(link: String!): [PlaylistJSON!]!
   removePlaylist(id: Int!): Playlist!
   removeStatistic(userId: ID!): Statistic!
-  savePlaylist(savePlaylistInput: SavePlaylistInput!): Playlist!
-  saveStatistic(saveStatisticInput: SaveStatisticInput!): Statistic!
-  signIn(signInInput: SignInInput!): User!
-  signUp(signUpInput: SignUpInput!): User!
+  savePlaylist(savePlaylistInput: SavePlaylistInput!): Boolean!
+  saveStatistic(saveStatisticInput: SaveStatisticInput!): Boolean!
+  signIn(signInInput: SignInInput!): SignInResponse!
+  signOut: Boolean!
+  signUp(signUpInput: SignUpInput!): Boolean!
   updateStatistic(updateStatisticInput: UpdateStatisticInput!): Statistic!
   updateUser(updateUserInput: UpdateUserInput!): Boolean!
 }
 
 type Playlist {
+  createdAt: DateTime!
   id: ID!
   listJson: [PlaylistJSON!]!
   name: String!
@@ -44,15 +51,20 @@ input PlaylistJSONInput {
   title: String
 }
 
+type PlaylistsResponse {
+  playlists: [Playlist!]!
+  totalPages: Int!
+}
+
 type Query {
   playlist(id: Int!): Playlist!
-  playlists: [Playlist!]!
+  playlists(limit: Int!, orderBy: String!, page: Int!): PlaylistsResponse!
   statistic(userId: ID!): Statistic!
-  user(id: ID!): User!
+  user: User!
 }
 
 input SavePlaylistInput {
-  listJson: String!
+  listJson: [PlaylistJSONInput!]!
   name: String!
   userId: String!
 }
@@ -67,6 +79,11 @@ input SaveStatisticInput {
 input SignInInput {
   id: String!
   password: String!
+}
+
+type SignInResponse {
+  accessToken: String!
+  user: User!
 }
 
 input SignUpInput {

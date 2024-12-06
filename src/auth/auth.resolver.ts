@@ -1,4 +1,4 @@
-import { Args, Mutation, Resolver } from '@nestjs/graphql';
+import { Args, Context, Mutation, Resolver } from '@nestjs/graphql';
 import { AuthService } from './service/auth.service';
 import { UserService } from 'src/user/service/user.service';
 import { SignInInput } from './dto/sign-in.input';
@@ -9,6 +9,7 @@ import { ChangePasswordInput } from './dto/change-password.input';
 import { ForbiddenException } from '@nestjs/common';
 import { IsPublic } from 'src/global/decorators/ispublic';
 import { UserInput } from 'src/user/dto/user.input';
+import { SignInResponse } from './dto/sign-in.response';
 
 @Resolver()
 export class AuthResolver {
@@ -18,15 +19,35 @@ export class AuthResolver {
   ) {}
 
   @IsPublic()
-  @Mutation(() => User)
+  @Mutation(() => Boolean)
   async signUp(@Args('signUpInput') signUpInput: SignUpInput) {
-    return await this.userService.create(signUpInput);
+    const user = await this.userService.create(signUpInput);
+    if (!user) {
+      throw new Error('Failed to create user');
+    }
+    return true;
   }
 
   @IsPublic()
-  @Mutation(() => User)
-  async signIn(@Args('signInInput') signInInput: SignInInput) {
-    return await this.authService.signIn(signInInput);
+  @Mutation(() => SignInResponse)
+  async signIn(
+    @Args('signInInput') signInInput: SignInInput,
+    @Context() context: any,
+  ) {
+    const result = await this.authService.signIn(signInInput);
+    context.res.cookie('refreshToken', result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'none',
+      maxAge: 60 * 60 * 24 * 7,
+    });
+    return { user: result.savedUser, accessToken: result.accessToken };
+  }
+
+  @Mutation(() => Boolean)
+  async signOut(@CurrentUser() user: UserInput) {
+    await this.authService.signOut(user.id);
+    return true;
   }
 
   @Mutation(() => Boolean)

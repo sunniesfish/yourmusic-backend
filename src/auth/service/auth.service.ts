@@ -31,16 +31,37 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
-    const payload = { sub: user.id, username: user.name };
-    const refreshToken = this.generateRefreshToken(payload);
-    await this.refreshTokenRepository.save({
-      user,
-      token: refreshToken,
-    });
-    return {
-      accessToken: this.jwtService.sign(payload),
-      refreshToken,
-    };
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const payload = { sub: user.id, username: user.name };
+      const refreshToken = this.generateRefreshToken(payload);
+      const refreshTokenRepository = queryRunner.manager.withRepository(
+        this.refreshTokenRepository,
+      );
+      const userRepository = queryRunner.manager.withRepository(
+        this.userRepository,
+      );
+      const savedUser = await userRepository.findOne({
+        where: { id: user.id },
+      });
+      await refreshTokenRepository.save({
+        user: savedUser,
+        token: refreshToken,
+      });
+      await queryRunner.commitTransaction();
+      return {
+        savedUser,
+        accessToken: this.jwtService.sign(payload),
+        refreshToken,
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async signOut(refreshToken: string) {

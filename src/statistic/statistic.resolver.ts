@@ -10,15 +10,16 @@ import { ForbiddenException } from '@nestjs/common';
 export class StatisticResolver {
   constructor(private readonly statisticService: StatisticService) {}
 
-  @Mutation(() => Statistic)
-  saveStatistic(
+  @Mutation(() => Boolean)
+  async saveStatistic(
     @CurrentUser() user: UserInput,
     @Args('saveStatisticInput') saveStatisticInput: SaveStatisticInput,
   ) {
     if (user.id === undefined) {
       throw new ForbiddenException();
     }
-    return this.statisticService.create(saveStatisticInput, user.id);
+    await this.statisticService.create(saveStatisticInput, user.id);
+    return true;
   }
 
   @Query(() => Statistic, { name: 'statistic' })

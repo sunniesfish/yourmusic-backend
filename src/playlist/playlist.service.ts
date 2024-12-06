@@ -51,14 +51,45 @@ export class PlaylistService {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
-    console.log(savePlaylistInput);
-    return 'This action adds a new playlist';
+    try {
+      const playlist = this.playlistRepository.create({
+        user: { id: savePlaylistInput.userId },
+        name: savePlaylistInput.name,
+        listJson: savePlaylistInput.listJson,
+      });
+      await queryRunner.manager.save(playlist);
+      await queryRunner.commitTransaction();
+      return playlist;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
-  async findAll(userId: string) {
-    return await this.playlistRepository.find({
-      where: { user: { id: userId } },
-    });
+  async findAll(userId: string, page: number, limit: number, orderBy: string) {
+    const skip = (page - 1) * limit;
+    const query = this.playlistRepository.createQueryBuilder('playlist');
+
+    query.where('playlist.userId = :userId', { userId });
+    if (orderBy === 'createdAt') {
+      query.orderBy('playlist.createdAt', 'DESC');
+    }
+    if (orderBy === 'name') {
+      query.orderBy('playlist.name', 'ASC');
+    }
+
+    const [playlists, total] = await Promise.all([
+      query.skip(skip).take(limit).getMany(),
+      query.getCount(),
+    ]);
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      playlists,
+      totalPages,
+    };
   }
 
   async findOne(id: number, userId: string) {
