@@ -1,17 +1,20 @@
-import { Injectable } from '@nestjs/common';
-import { SavePlaylistInput } from './dto/save-playlist.input';
-import { PlaylistJSON } from './dto/playlist-json.input';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { SavePlaylistInput } from '../dto/save-playlist.input';
+import { PlaylistJSON } from '../dto/playlist-json.input';
 import { DataSource, Repository } from 'typeorm';
-import { Playlist } from './entities/playlist.entity';
+import { Playlist } from '../entities/playlist.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { isSpotifyUrl, readSpotifyPlaylist } from './util/spotify-util';
-import { isYoutubeUrl, readYoutubePlaylist } from './util/youtube-util';
+
+import { isYoutubeUrl, readYoutubePlaylist } from '../util/youtube-util';
+import { SpotifyService } from './spotify.service';
 
 @Injectable()
 export class PlaylistService {
   constructor(
     @InjectRepository(Playlist)
     private readonly playlistRepository: Repository<Playlist>,
+    @Inject(forwardRef(() => SpotifyService))
+    private readonly spotifyService: SpotifyService,
 
     private readonly dataSource: DataSource,
   ) {}
@@ -31,7 +34,7 @@ export class PlaylistService {
       throw new Error('Please provide a valid URL');
     }
 
-    const isSpotify = isSpotifyUrl(link);
+    const isSpotify = this.spotifyService.isSpotifyUrl(link);
     const isYoutube = isYoutubeUrl(link);
 
     if (!isSpotify && !isYoutube) {
@@ -39,7 +42,7 @@ export class PlaylistService {
     }
 
     if (isSpotify) {
-      return await readSpotifyPlaylist(link);
+      return await this.spotifyService.readSpotifyPlaylist(link);
     }
 
     if (isYoutube) {
@@ -47,13 +50,13 @@ export class PlaylistService {
     }
   }
 
-  async create(savePlaylistInput: SavePlaylistInput) {
+  async create(savePlaylistInput: SavePlaylistInput, userId: string) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
       const playlist = this.playlistRepository.create({
-        user: { id: savePlaylistInput.userId },
+        user: { id: userId },
         name: savePlaylistInput.name,
         listJson: savePlaylistInput.listJson,
       });

@@ -1,5 +1,5 @@
 import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
-import { PlaylistService } from './playlist.service';
+import { PlaylistService } from './service/playlist.service';
 import { Playlist } from './entities/playlist.entity';
 import { PlaylistJSON } from './dto/playlist-json.input';
 import { SavePlaylistInput } from './dto/save-playlist.input';
@@ -18,15 +18,15 @@ export class PlaylistResolver {
     @CurrentUser() user: UserInput,
     @Args('savePlaylistInput') savePlaylistInput: SavePlaylistInput,
   ) {
-    if (user.id === undefined || savePlaylistInput.userId !== user.id) {
+    if (user.id === undefined) {
       throw new ForbiddenException();
     }
-    await this.playlistService.create(savePlaylistInput);
+    await this.playlistService.create(savePlaylistInput, user.id);
     return true;
   }
 
   @Query(() => PlaylistsResponse, {
-    name: 'playlists',
+    name: 'playlistsPage',
   })
   async findAll(
     @CurrentUser() user: UserInput,

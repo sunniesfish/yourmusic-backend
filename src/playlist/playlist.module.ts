@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { PlaylistService } from './playlist.service';
+import { PlaylistService } from './service/playlist.service';
 import { Playlist } from './entities/playlist.entity';
 import { PlaylistResolver } from './playlist.resolver';
 

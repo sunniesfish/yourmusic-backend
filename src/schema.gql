@@ -58,7 +58,7 @@ type PlaylistsResponse {
 
 type Query {
   playlist(id: Int!): Playlist!
-  playlists(limit: Int!, orderBy: String!, page: Int!): PlaylistsResponse!
+  playlistsPage(limit: Int!, orderBy: String!, page: Int!): PlaylistsResponse!
   statistic(userId: ID!): Statistic!
   user: User!
 }
@@ -66,7 +66,6 @@ type Query {
 input SavePlaylistInput {
   listJson: [PlaylistJSONInput!]!
   name: String!
-  userId: String!
 }
 
 input SaveStatisticInput {
