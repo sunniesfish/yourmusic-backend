@@ -11,6 +11,7 @@ export interface SpotifyConfig {
   addSongBatchSize: number;
   apiLimitPerSecond: number;
   apiLimitPerMinute: number;
+  apiLimitQueueSize: number;
 }
 
 @Injectable()
@@ -42,4 +43,8 @@ export const spotifyConfig: SpotifyConfig = {
     process.env.NODE_ENV === 'production'
       ? parseInt(process.env.SPOTIFY_API_LIMIT_PER_MINUTE!)
       : 100,
+  apiLimitQueueSize:
+    process.env.NODE_ENV === 'production'
+      ? parseInt(process.env.SPOTIFY_API_LIMIT_QUEUE_SIZE!)
+      : 1000,
 };

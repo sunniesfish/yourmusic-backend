@@ -2,6 +2,7 @@ import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { scraper } from '../util/scraper';
 import { SpotifyConfig, SpotifyConfigService } from '../config/spotifyConfig';
 import { PlaylistJSON } from '../dto/playlist-json.input';
+import ApiRateLimiter from '@sunniesfish/api-rate-limiter';
 
 @Injectable()
 export class SpotifyService {
@@ -9,8 +10,20 @@ export class SpotifyService {
   constructor(
     @Inject(forwardRef(() => SpotifyConfigService))
     private configService: SpotifyConfigService,
+    private apiRateLimiter: ApiRateLimiter<any>,
   ) {
     this.config = configService.getConfig();
+    this.apiRateLimiter = new ApiRateLimiter(
+      {
+        maxPerSecond: this.config.apiLimitPerSecond,
+        maxPerMinute: this.config.apiLimitPerMinute,
+        maxQueueSize: this.config.apiLimitQueueSize,
+      },
+      (error) => {
+        console.error('api error', error);
+        throw new Error('api error');
+      },
+    );
   }
 
   readSpotifyPlaylist = async (link: string): Promise<PlaylistJSON[]> => {
@@ -129,48 +142,49 @@ export class SpotifyService {
     playlistId: string;
     playlistUri: string;
   }> {
-    const maxConcurrency = this.config.apiLimitPerSecond;
-    const queue: Promise<void>[] = [];
-    const validSongUris = [];
-
-    const runTask = async (song: PlaylistJSON) => {
-      try {
-        const result = await this.searchSong(accessToken, {
-          title: song.title,
-          artist: song.artist,
-        });
-        if (result) {
-          validSongUris.push(result.songUri);
-        }
-      } catch (error) {
-        console.error(
-          `Error searching for song ${song.title} by ${song.artist}: ${error}`,
-        );
-      }
-    };
-
     try {
-      const playlist = await this.createPlaylist(
-        spotifyUserId,
-        accessToken,
-        playlistJSON[0].title,
-      );
-      for (const song of playlistJSON) {
-        const task = runTask(song).finally(() => {
-          queue.splice(queue.indexOf(task), 1);
-        });
-        queue.push(task);
-        if (queue.length >= maxConcurrency) {
-          await Promise.race(queue);
-        }
-      }
-      await Promise.allSettled(queue);
+      const playlist: {
+        playlistName: string;
+        playlistId: string;
+        playlistUri: string;
+      } = await this.apiRateLimiter.addRequest(async () => {
+        return await this.createPlaylist(
+          spotifyUserId,
+          accessToken,
+          playlistJSON[0].title,
+        );
+      });
 
-      await this.addSongToPlaylist(
-        accessToken,
-        playlist.playlistId,
-        validSongUris,
+      const searchSongRequests = await Promise.allSettled(
+        playlistJSON.map(
+          (song) =>
+            new Promise<{ songUri: string } | null>(async (resolve) => {
+              this.apiRateLimiter.addRequest(async () => {
+                const result = await this.searchSong(accessToken, {
+                  title: song.title,
+                  artist: song.artist,
+                });
+                resolve(result);
+              });
+            }),
+        ),
       );
+      const validSongUris = searchSongRequests
+        .filter((result) => result.status === 'fulfilled')
+        .map((result) => {
+          if (result.status === 'fulfilled') {
+            return { songUri: result.value?.songUri };
+          }
+          return null;
+        });
+
+      await this.apiRateLimiter.addRequest(async () => {
+        await this.addSongToPlaylist(
+          accessToken,
+          playlist.playlistId,
+          validSongUris,
+        );
+      });
 
       return playlist;
     } catch (error) {

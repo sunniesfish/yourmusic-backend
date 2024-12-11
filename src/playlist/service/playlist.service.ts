@@ -19,9 +19,16 @@ export class PlaylistService {
     private readonly dataSource: DataSource,
   ) {}
 
-  convertToSpotifyPlaylist(playlistJSON: PlaylistJSON[]) {
-    console.log(playlistJSON);
-    return true;
+  async convertToSpotifyPlaylist(
+    spotifyUserId: string,
+    accessToken: string,
+    playlistJSON: PlaylistJSON[],
+  ) {
+    return await this.spotifyService.convertToSpotifyPlaylist(
+      spotifyUserId,
+      accessToken,
+      playlistJSON,
+    );
   }
 
   convertToYoutubePlaylist(playlistJSON: PlaylistJSON[]) {
