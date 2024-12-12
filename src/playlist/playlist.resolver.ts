@@ -68,14 +68,14 @@ export class PlaylistResolver {
     return await this.playlistService.read(link);
   }
 
-  @IsPublic()
-  @Mutation(() => Boolean)
-  async convertToSpotifyPlaylist(
-    @Args('listJSON', { type: () => [PlaylistJSON] })
-    listJSON: PlaylistJSON[],
-  ) {
-    return await this.playlistService.convertToSpotifyPlaylist(listJSON);
-  }
+  // @IsPublic()
+  // @Mutation(() => Boolean)
+  // async convertToSpotifyPlaylist(
+  //   @Args('listJSON', { type: () => [PlaylistJSON] })
+  //   listJSON: PlaylistJSON[],
+  // ) {
+  //   return await this.playlistService.convertToSpotifyPlaylist();
+  // }
 
   @IsPublic()
   @Mutation(() => Boolean)

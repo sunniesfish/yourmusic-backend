@@ -5,8 +5,8 @@ import { DataSource, Repository } from 'typeorm';
 import { Playlist } from '../entities/playlist.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { isYoutubeUrl, readYoutubePlaylist } from '../util/youtube-util';
 import { SpotifyService } from './spotify.service';
+import { YoutubeService } from './youtube.service';
 
 @Injectable()
 export class PlaylistService {
@@ -15,7 +15,8 @@ export class PlaylistService {
     private readonly playlistRepository: Repository<Playlist>,
     @Inject(forwardRef(() => SpotifyService))
     private readonly spotifyService: SpotifyService,
-
+    @Inject(forwardRef(() => YoutubeService))
+    private readonly youtubeService: YoutubeService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -42,7 +43,7 @@ export class PlaylistService {
     }
 
     const isSpotify = this.spotifyService.isSpotifyUrl(link);
-    const isYoutube = isYoutubeUrl(link);
+    const isYoutube = this.youtubeService.isYoutubeUrl(link);
 
     if (!isSpotify && !isYoutube) {
       throw new Error('Please provide a valid Spotify or YouTube URL');
@@ -53,7 +54,7 @@ export class PlaylistService {
     }
 
     if (isYoutube) {
-      return await readYoutubePlaylist(link);
+      return await this.youtubeService.readYoutubePlaylist(link);
     }
   }
 
