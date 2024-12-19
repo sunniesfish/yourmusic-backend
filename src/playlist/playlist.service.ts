@@ -1,12 +1,12 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { SavePlaylistInput } from '../dto/save-playlist.input';
-import { PlaylistJSON } from '../dto/playlist-json.input';
+import { SavePlaylistInput } from './dto/save-playlist.input';
+import { PlaylistJSON } from './dto/playlist-json.input';
 import { DataSource, Repository } from 'typeorm';
-import { Playlist } from '../entities/playlist.entity';
+import { Playlist } from './entities/playlist.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { SpotifyService } from './spotify.service';
-import { YoutubeService } from './youtube.service';
+import { SpotifyService } from './spotify/spotify.service';
+import { YoutubeService } from './youtube/youtube.service';
 
 @Injectable()
 export class PlaylistService {

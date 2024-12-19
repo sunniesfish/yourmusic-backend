@@ -11,7 +11,7 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import { ConfigModule } from '@nestjs/config';
-
+import { GoogleAuthService } from './service/google-auth.service';
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
@@ -26,7 +26,7 @@ import { ConfigModule } from '@nestjs/config';
     TypeOrmModule.forFeature([RefreshToken, User, YoutubeToken, SpotifyToken]),
     UserModule,
   ],
-  providers: [AuthService, AuthResolver, JwtService],
+  providers: [AuthService, AuthResolver, JwtService, GoogleAuthService],
   exports: [AuthService],
 })
 export class AuthModule {}

@@ -1,6 +1,6 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { scraper } from '../util/scraper';
-import { SpotifyConfig, SpotifyConfigService } from '../config/spotifyConfig';
+import { scraper } from '../common/scraper';
+import { SpotifyConfig, SpotifyConfigService } from './spotifyConfig';
 import { PlaylistJSON } from '../dto/playlist-json.input';
 import ApiRateLimiter from '@sunniesfish/api-rate-limiter';
 

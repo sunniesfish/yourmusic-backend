@@ -1,7 +1,7 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { scraper } from '../util/scraper';
+import { scraper } from '../common/scraper';
 import { PlaylistJSON } from '../dto/playlist-json.input';
-import { YouTubeConfig, YoutubeConfigService } from '../config/youtubeConfig';
+import { YouTubeConfig, YoutubeConfigService } from './youtubeConfig';
 import ApiRateLimiter from '@sunniesfish/api-rate-limiter';
 
 @Injectable()
