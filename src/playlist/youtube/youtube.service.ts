@@ -1,8 +1,9 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { scraper } from '../common/scraper';
+import { ScraperService } from '../common/scraper.service';
 import { PlaylistJSON } from '../dto/playlist-json.input';
-import { YouTubeConfig, YoutubeConfigService } from './youtubeConfig';
+import { YouTubeConfig, YoutubeConfigService } from '../config/youtubeConfig';
 import ApiRateLimiter from '@sunniesfish/api-rate-limiter';
+import { GoogleAuthService } from 'src/auth/service/google-auth.service';
 
 @Injectable()
 export class YoutubeService {
@@ -11,6 +12,10 @@ export class YoutubeService {
     @Inject(forwardRef(() => YoutubeConfigService))
     private configService: YoutubeConfigService,
     private apiRateLimiter: ApiRateLimiter<any>,
+    @Inject()
+    private scraperService: ScraperService,
+    @Inject(forwardRef(() => GoogleAuthService))
+    private googleAuthService: GoogleAuthService,
   ) {
     this.config = configService.getConfig();
     this.apiRateLimiter = new ApiRateLimiter({
@@ -21,27 +26,31 @@ export class YoutubeService {
   }
 
   readYoutubePlaylist = async (link: string): Promise<PlaylistJSON[]> => {
-    return scraper(link, 'ytd-playlist-video-renderer', async () => {
-      const trackRows = document.querySelectorAll(
-        'ytd-playlist-video-renderer',
-      );
-      return Array.from(trackRows).map((row) => {
-        // 비디오 제목 추출
-        const titleElement = row.querySelector('#video-title');
-        const title = titleElement?.textContent?.trim() || '';
-
-        // 채널명 추출
-        const channelElement = row.querySelector(
-          'ytd-channel-name yt-formatted-string a',
+    return this.scraperService.scrape(
+      link,
+      'ytd-playlist-video-renderer',
+      async () => {
+        const trackRows = document.querySelectorAll(
+          'ytd-playlist-video-renderer',
         );
-        const artist = channelElement?.textContent?.trim() || '';
+        return Array.from(trackRows).map((row) => {
+          // 비디오 제목 추출
+          const titleElement = row.querySelector('#video-title');
+          const title = titleElement?.textContent?.trim() || '';
 
-        return {
-          title,
-          artist,
-        };
-      });
-    });
+          // 채널명 추출
+          const channelElement = row.querySelector(
+            'ytd-channel-name yt-formatted-string a',
+          );
+          const artist = channelElement?.textContent?.trim() || '';
+
+          return {
+            title,
+            artist,
+          };
+        });
+      },
+    );
   };
 
   isYoutubeUrl = (url: string): boolean => {

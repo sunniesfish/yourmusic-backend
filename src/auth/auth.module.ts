@@ -5,13 +5,16 @@ import { AuthService } from './service/auth.service';
 import { AuthResolver } from './auth.resolver';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { User } from 'src/user/entities/user.entity';
-import { YoutubeToken } from './entities/youtube-token.entity';
 import { SpotifyToken } from './entities/spotify-token.entity';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import { ConfigModule } from '@nestjs/config';
 import { GoogleAuthService } from './service/google-auth.service';
+import { YoutubeCredentials } from './entities/youtube-token.entity';
+import { YouTubeAuthInterceptor } from './intercepter/youtube-auth.interceptor';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
@@ -23,10 +26,24 @@ import { GoogleAuthService } from './service/google-auth.service';
       }),
       inject: [ConfigService],
     }),
-    TypeOrmModule.forFeature([RefreshToken, User, YoutubeToken, SpotifyToken]),
+    TypeOrmModule.forFeature([
+      RefreshToken,
+      User,
+      YoutubeCredentials,
+      SpotifyToken,
+    ]),
     UserModule,
   ],
-  providers: [AuthService, AuthResolver, JwtService, GoogleAuthService],
-  exports: [AuthService],
+  providers: [
+    AuthService,
+    AuthResolver,
+    JwtService,
+    GoogleAuthService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: YouTubeAuthInterceptor,
+    },
+  ],
+  exports: [AuthService, GoogleAuthService],
 })
 export class AuthModule {}

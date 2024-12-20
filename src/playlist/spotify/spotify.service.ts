@@ -1,8 +1,8 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { scraper } from '../common/scraper';
-import { SpotifyConfig, SpotifyConfigService } from './spotifyConfig';
+import { SpotifyConfig, SpotifyConfigService } from '../config/spotifyConfig';
 import { PlaylistJSON } from '../dto/playlist-json.input';
 import ApiRateLimiter from '@sunniesfish/api-rate-limiter';
+import { ScraperService } from '../common/scraper.service';
 
 @Injectable()
 export class SpotifyService {
@@ -10,6 +10,8 @@ export class SpotifyService {
   constructor(
     @Inject(forwardRef(() => SpotifyConfigService))
     private configService: SpotifyConfigService,
+    @Inject()
+    private scraperService: ScraperService,
     private apiRateLimiter: ApiRateLimiter<any>,
   ) {
     this.config = configService.getConfig();
@@ -27,7 +29,7 @@ export class SpotifyService {
   }
 
   readSpotifyPlaylist = async (link: string): Promise<PlaylistJSON[]> => {
-    return scraper(link, 'div.contentSpacing', async () => {
+    return this.scraperService.scrape(link, 'div.contentSpacing', async () => {
       const trackRows = document.querySelectorAll(
         '[data-testid="tracklist-row"]',
       );

@@ -4,18 +4,30 @@ import { Column, Entity, JoinColumn, OneToOne, PrimaryColumn } from 'typeorm';
 
 @ObjectType()
 @Entity()
-export class YoutubeToken {
+export class YoutubeCredentials {
   @Field(() => ID)
   @PrimaryColumn({ type: 'varchar' })
   userId: string;
 
   @Field()
-  @Column({ type: 'text', nullable: false })
+  @Column({ type: 'text', nullable: true })
   accessToken: string;
 
   @Field()
-  @Column({ type: 'datetime', nullable: false })
-  expiresAt: Date;
+  @Column({ type: 'text', nullable: true })
+  refreshToken: string;
+
+  @Field()
+  @Column({ type: 'text', nullable: true })
+  scope: string;
+
+  @Field()
+  @Column({ type: 'text', nullable: true })
+  tokenType: string;
+
+  @Field()
+  @Column({ type: 'bigint', nullable: true })
+  expiryDate: number;
 
   @Field(() => User)
   @OneToOne(() => User, { onDelete: 'CASCADE' })
