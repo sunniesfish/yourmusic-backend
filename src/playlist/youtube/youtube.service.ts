@@ -1,94 +1,80 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { ScraperService } from '../common/scraper.service';
+import { Injectable } from '@nestjs/common';
 import { PlaylistJSON } from '../dto/playlist-json.input';
-import { YouTubeConfig, YoutubeConfigService } from '../config/youtubeConfig';
-import ApiRateLimiter from '@sunniesfish/api-rate-limiter';
-import { GoogleAuthService } from 'src/auth/service/google-auth.service';
+import { YouTubeConfig } from '../config/youtubeConfig';
+import { YouTubeApiClient } from './youtube-api.client';
 
 @Injectable()
-export class YoutubeService {
-  private config: YouTubeConfig;
+export class YouTubePlaylistService {
   constructor(
-    @Inject(forwardRef(() => YoutubeConfigService))
-    private configService: YoutubeConfigService,
-    private apiRateLimiter: ApiRateLimiter<any>,
-    @Inject()
-    private scraperService: ScraperService,
-    @Inject(forwardRef(() => GoogleAuthService))
-    private googleAuthService: GoogleAuthService,
-  ) {
-    this.config = configService.getConfig();
-    this.apiRateLimiter = new ApiRateLimiter({
-      maxPerSecond: this.config.apiLimitPerSecond,
-      maxPerMinute: this.config.apiLimitPerMinute,
-      maxQueueSize: this.config.apiLimitQueueSize,
-    });
+    private readonly youtubeApiClient: YouTubeApiClient,
+    private readonly config: YouTubeConfig,
+  ) {}
+
+  async convertPlaylist(
+    userId: string,
+    playlistJSON: PlaylistJSON[],
+  ): Promise<boolean> {
+    try {
+      // 1. 플레이리스트 생성
+      const playlistId = await this.youtubeApiClient.createPlaylist(
+        userId,
+        'Converted Playlist',
+      );
+
+      // 2. 곡 검색 및 추가 (배치 처리)
+      await this.processSongsInBatches(userId, playlistId, playlistJSON);
+
+      return true;
+    } catch (error) {
+      this.handleError(error);
+      return false;
+    }
   }
 
-  readYoutubePlaylist = async (link: string): Promise<PlaylistJSON[]> => {
-    return this.scraperService.scrape(
-      link,
-      'ytd-playlist-video-renderer',
-      async () => {
-        const trackRows = document.querySelectorAll(
-          'ytd-playlist-video-renderer',
-        );
-        return Array.from(trackRows).map((row) => {
-          // 비디오 제목 추출
-          const titleElement = row.querySelector('#video-title');
-          const title = titleElement?.textContent?.trim() || '';
+  private async processSongsInBatches(
+    userId: string,
+    playlistId: string,
+    songs: PlaylistJSON[],
+  ): Promise<void> {
+    // 배치 크기 설정
+    const batchSize = this.config.batchSize;
 
-          // 채널명 추출
-          const channelElement = row.querySelector(
-            'ytd-channel-name yt-formatted-string a',
-          );
-          const artist = channelElement?.textContent?.trim() || '';
-
-          return {
-            title,
-            artist,
-          };
-        });
-      },
-    );
-  };
-
-  isYoutubeUrl = (url: string): boolean => {
-    return url.includes('youtube.com') || url.includes('youtu.be');
-  };
-
-  // async convertToYoutubePlaylist(playlistJSON: PlaylistJSON[]) {
-  //   try {
-  //     const playlist: {
-  //       playlistName: string;
-  //       playlistId: string;
-  //       playlistUri: string;
-  //     } = await this.apiRateLimiter.addRequest(async () => {
-  //       return await this.createPlaylist();
-  //     });
-
-  //     const searchSongRequests = await Promise.allSettled(
-  //       playlistJSON.map(
-  //         (song) =>
-  //           new Promise<{ songUri: string } | null>(async (resolve) => {
-  //             this.apiRateLimiter.addRequest(async () => {
-  //               const result = await this.searchSong();
-  //               resolve(result);
-  //             });
-  //           }),
-  //       ),
-  //     );
-  //   } catch (error) {
-  //     console.error(error);
-  //     throw error;
-  //   }
-  // }
-
-  async createPlaylist() {
-    return true;
+    // 곡들을 배치로 나누어 처리
+    for (let i = 0; i < songs.length; i += batchSize) {
+      const batch = songs.slice(i, i + batchSize);
+      await Promise.all(
+        batch.map((song) => this.processOneSong(userId, playlistId, song)),
+      );
+    }
   }
 
-  async searchSong() {
-    return true;
+  private async processOneSong(
+    userId: string,
+    playlistId: string,
+    song: PlaylistJSON,
+  ): Promise<void> {
+    try {
+      const searchQuery = `${song.title} ${song.artist}`;
+      const videoId = await this.youtubeApiClient.searchVideo(
+        userId,
+        searchQuery,
+      );
+
+      if (videoId) {
+        await this.youtubeApiClient.addToPlaylist(userId, playlistId, videoId);
+      }
+    } catch (error) {
+      // 개별 곡 처리 실패 로깅
+      console.error(`Failed to process song: ${song.title}`, error);
+    }
+  }
+
+  private handleError(error: any): void {
+    // 에러 처리 및 로깅
+    if (error instanceof YouTubeApiError) {
+      // API 관련 에러 처리
+    } else {
+      // 기타 에러 처리
+    }
   }
 }

@@ -4,8 +4,9 @@ import {
   ExecutionContext,
   CallHandler,
 } from '@nestjs/common';
+import { GqlExecutionContext } from '@nestjs/graphql';
 import { Reflector } from '@nestjs/core';
-import { Observable, lastValueFrom } from 'rxjs';
+import { lastValueFrom, Observable } from 'rxjs';
 import { GoogleAuthService } from '../service/google-auth.service';
 import ApiRateLimiter from '@sunniesfish/api-rate-limiter';
 
@@ -43,8 +44,9 @@ export class YouTubeAuthInterceptor implements NestInterceptor {
       return next.handle();
     }
 
-    const request = context.switchToHttp().getRequest();
-    const user = request.user;
+    const ctx = GqlExecutionContext.create(context);
+    const { req } = ctx.getContext();
+    const user = req.user;
 
     return new Observable((subscriber) => {
       this.apiRateLimiter.addRequest(async () => {
@@ -52,7 +54,7 @@ export class YouTubeAuthInterceptor implements NestInterceptor {
           const oauth2Client =
             await this.googleAuthService.getOAuthClientForUser(user.id);
 
-          request.oauth2Client = oauth2Client;
+          req.oauth2Client = oauth2Client;
 
           const result = await lastValueFrom(next.handle());
           subscriber.next(result);
