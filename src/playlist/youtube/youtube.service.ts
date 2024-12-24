@@ -1,16 +1,55 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { PlaylistJSON } from '../dto/playlist-json.input';
-import { YouTubeConfig } from '../config/youtubeConfig';
+import { YouTubeConfig, YouTubeConfigService } from './youtubeConfig';
 import { YouTubeApiClient } from './youtube-api.client';
+import { ScraperService } from '../common/scraper.service';
+import ApiRateLimiter from '@sunniesfish/api-rate-limiter';
 
 @Injectable()
-export class YouTubePlaylistService {
+export class YouTubeService {
+  private config: YouTubeConfig;
+  private apiRateLimiter: ApiRateLimiter<any>;
   constructor(
+    @Inject(forwardRef(() => YouTubeConfigService))
+    private readonly configService: YouTubeConfigService,
+    @Inject()
     private readonly youtubeApiClient: YouTubeApiClient,
-    private readonly config: YouTubeConfig,
-  ) {}
+    @Inject()
+    private readonly scraperService: ScraperService,
+  ) {
+    this.config = this.configService.getConfig();
+    this.apiRateLimiter = new ApiRateLimiter(
+      {
+        maxPerSecond: this.config.apiLimitPerSecond,
+        maxPerMinute: this.config.apiLimitPerMinute,
+        maxQueueSize: this.config.apiLimitQueueSize,
+      },
+      (error) => {
+        console.error('api error', error);
+        throw new Error('api error');
+      },
+    );
+  }
 
-  async convertPlaylist(
+  isYoutubeUrl(link: string) {
+    return link.includes('youtube.com') || link.includes('youtu.be');
+  }
+
+  readYoutubePlaylist(link: string): Promise<PlaylistJSON[]> {
+    return this.scraperService.scrape(link, 'div.contentSpacing', async () => {
+      const trackRows = document.querySelectorAll(
+        '[data-testid="tracklist-row"]',
+      );
+      return Array.from(trackRows).map((row) => {
+        const thumbnail = row.querySelector('img')?.getAttribute('src') || '';
+        const title = row.querySelector('a')?.getAttribute('title') || '';
+        const artist = row.querySelector('a')?.getAttribute('title') || '';
+        return { title, artist, thumbnail };
+      });
+    });
+  }
+
+  async convertToYoutubePlaylist(
     userId: string,
     playlistJSON: PlaylistJSON[],
   ): Promise<boolean> {
@@ -26,8 +65,7 @@ export class YouTubePlaylistService {
 
       return true;
     } catch (error) {
-      this.handleError(error);
-      return false;
+      throw new Error(`Failed to convert to YouTube playlist: ${error}`);
     }
   }
 
@@ -66,15 +104,6 @@ export class YouTubePlaylistService {
     } catch (error) {
       // 개별 곡 처리 실패 로깅
       console.error(`Failed to process song: ${song.title}`, error);
-    }
-  }
-
-  private handleError(error: any): void {
-    // 에러 처리 및 로깅
-    if (error instanceof YouTubeApiError) {
-      // API 관련 에러 처리
-    } else {
-      // 기타 에러 처리
     }
   }
 }

@@ -1,5 +1,5 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { SpotifyConfig, SpotifyConfigService } from '../config/spotifyConfig';
+import { SpotifyConfig, SpotifyConfigService } from './spotifyConfig';
 import { PlaylistJSON } from '../dto/playlist-json.input';
 import ApiRateLimiter from '@sunniesfish/api-rate-limiter';
 import { ScraperService } from '../common/scraper.service';
@@ -7,12 +7,12 @@ import { ScraperService } from '../common/scraper.service';
 @Injectable()
 export class SpotifyService {
   private config: SpotifyConfig;
+  private apiRateLimiter: ApiRateLimiter<any>;
   constructor(
     @Inject(forwardRef(() => SpotifyConfigService))
     private configService: SpotifyConfigService,
     @Inject()
     private scraperService: ScraperService,
-    private apiRateLimiter: ApiRateLimiter<any>,
   ) {
     this.config = configService.getConfig();
     this.apiRateLimiter = new ApiRateLimiter(
@@ -27,6 +27,10 @@ export class SpotifyService {
       },
     );
   }
+
+  isSpotifyUrl = (url: string): boolean => {
+    return url.includes('spotify.com');
+  };
 
   readSpotifyPlaylist = async (link: string): Promise<PlaylistJSON[]> => {
     return this.scraperService.scrape(link, 'div.contentSpacing', async () => {
@@ -59,10 +63,6 @@ export class SpotifyService {
         };
       });
     });
-  };
-
-  isSpotifyUrl = (url: string): boolean => {
-    return url.includes('spotify.com');
   };
 
   getSpotifyAuthUrl = (): string => {

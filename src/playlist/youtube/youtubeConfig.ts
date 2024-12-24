@@ -5,10 +5,11 @@ export interface YouTubeConfig {
   apiLimitPerSecond: number;
   apiLimitPerMinute: number;
   apiLimitQueueSize: number;
+  batchSize: number;
 }
 
 @Injectable()
-export class YoutubeConfigService {
+export class YouTubeConfigService {
   getConfig(): YouTubeConfig {
     return youtubeConfig;
   }
@@ -29,4 +30,8 @@ const youtubeConfig: YouTubeConfig = {
     process.env.NODE_ENV === 'production'
       ? parseInt(process.env.YOUTUBE_API_LIMIT_QUEUE_SIZE!)
       : 1000,
+  batchSize:
+    process.env.NODE_ENV === 'production'
+      ? parseInt(process.env.YOUTUBE_BATCH_SIZE!)
+      : 10,
 };

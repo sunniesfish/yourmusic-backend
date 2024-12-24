@@ -21,7 +21,7 @@ export class SpotifyConfigService {
   }
 }
 
-export const spotifyConfig: SpotifyConfig = {
+const spotifyConfig: SpotifyConfig = {
   clientId: process.env.SPOTIFY_CLIENT_ID!,
   clientSecret: process.env.SPOTIFY_CLIENT_SECRET!,
   redirectUri: process.env.SPOTIFY_REDIRECT_URI!,

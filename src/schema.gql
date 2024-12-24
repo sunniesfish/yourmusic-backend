@@ -15,7 +15,6 @@ scalar DateTime
 type Mutation {
   changePassword(input: ChangePasswordInput!): User!
   checkPassword(input: ChangePasswordInput!): Boolean!
-  convertToSpotifyPlaylist(listJSON: [PlaylistJSONInput!]!): Boolean!
   convertToYoutubePlaylist(listJSON: [PlaylistJSONInput!]!): Boolean!
   readPlaylist(link: String!): [PlaylistJSON!]!
   removePlaylist(id: Int!): Playlist!
@@ -96,6 +95,7 @@ type Statistic {
   albumRankJson: String!
   artistRankJson: String!
   genreRankJson: String!
+  updatedAt: DateTime!
   user: User!
   userId: ID!
 }

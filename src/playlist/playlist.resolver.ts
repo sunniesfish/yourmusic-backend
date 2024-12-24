@@ -80,9 +80,16 @@ export class PlaylistResolver {
   @IsPublic()
   @Mutation(() => Boolean)
   async convertToYoutubePlaylist(
+    @CurrentUser() user: UserInput,
     @Args('listJSON', { type: () => [PlaylistJSON] })
     listJSON: PlaylistJSON[],
   ) {
-    return await this.playlistService.convertToYoutubePlaylist(listJSON);
+    if (user.id === undefined) {
+      throw new ForbiddenException();
+    }
+    return await this.playlistService.convertToYoutubePlaylist(
+      user.id,
+      listJSON,
+    );
   }
 }

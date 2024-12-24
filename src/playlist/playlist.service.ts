@@ -4,10 +4,8 @@ import { PlaylistJSON } from './dto/playlist-json.input';
 import { DataSource, Repository } from 'typeorm';
 import { Playlist } from './entities/playlist.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-
+import { YouTubeService } from './youtube/youtube.service';
 import { SpotifyService } from './spotify/spotify.service';
-import { YoutubeService } from './youtube/youtube.service';
-
 @Injectable()
 export class PlaylistService {
   constructor(
@@ -15,8 +13,8 @@ export class PlaylistService {
     private readonly playlistRepository: Repository<Playlist>,
     @Inject(forwardRef(() => SpotifyService))
     private readonly spotifyService: SpotifyService,
-    @Inject(forwardRef(() => YoutubeService))
-    private readonly youtubeService: YoutubeService,
+    @Inject(forwardRef(() => YouTubeService))
+    private readonly youtubeService: YouTubeService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -32,9 +30,11 @@ export class PlaylistService {
     );
   }
 
-  convertToYoutubePlaylist(playlistJSON: PlaylistJSON[]) {
-    console.log(playlistJSON);
-    return true;
+  async convertToYoutubePlaylist(userId: string, playlistJSON: PlaylistJSON[]) {
+    return await this.youtubeService.convertToYoutubePlaylist(
+      userId,
+      playlistJSON,
+    );
   }
 
   async read(link: string): Promise<PlaylistJSON[]> {

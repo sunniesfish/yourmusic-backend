@@ -1,6 +1,13 @@
 import { ObjectType, Field, ID } from '@nestjs/graphql';
 import { User } from 'src/user/entities/user.entity';
-import { Column, Entity, JoinColumn, OneToOne, PrimaryColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  OneToOne,
+  PrimaryColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 @ObjectType()
 @Entity()
@@ -20,6 +27,10 @@ export class Statistic {
   @Field()
   @Column({ type: 'text', nullable: false })
   genreRankJson: string;
+
+  @Field()
+  @UpdateDateColumn({ type: 'timestamp', nullable: false })
+  updatedAt: Date;
 
   @Field(() => User)
   @OneToOne(() => User, { onDelete: 'CASCADE' })
