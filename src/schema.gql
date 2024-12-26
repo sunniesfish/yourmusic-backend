@@ -12,6 +12,13 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 """
 scalar DateTime
 
+input MutateStatisticInput {
+  albumRankJson: StatisticRankInput!
+  artistRankJson: StatisticRankInput!
+  titleRankJson: StatisticRankInput!
+  userId: ID!
+}
+
 type Mutation {
   changePassword(input: ChangePasswordInput!): User!
   checkPassword(input: ChangePasswordInput!): Boolean!
@@ -20,11 +27,11 @@ type Mutation {
   removePlaylist(id: Int!): Playlist!
   removeStatistic(userId: ID!): Statistic!
   savePlaylist(savePlaylistInput: SavePlaylistInput!): Boolean!
-  saveStatistic(saveStatisticInput: SaveStatisticInput!): Boolean!
+  saveStatistic(saveStatisticInput: MutateStatisticInput!): Boolean!
   signIn(signInInput: SignInInput!): SignInResponse!
   signOut: Boolean!
   signUp(signUpInput: SignUpInput!): Boolean!
-  updateStatistic(updateStatisticInput: UpdateStatisticInput!): Statistic!
+  updateStatistic(updateStatisticInput: MutateStatisticInput!): Statistic!
   updateUser(updateUserInput: UpdateUserInput!): Boolean!
 }
 
@@ -67,13 +74,6 @@ input SavePlaylistInput {
   name: String!
 }
 
-input SaveStatisticInput {
-  albumRankJson: String!
-  artistRankJson: String!
-  genreRankJson: String!
-  userId: ID!
-}
-
 input SignInInput {
   id: String!
   password: String!
@@ -92,19 +92,24 @@ input SignUpInput {
 }
 
 type Statistic {
-  albumRankJson: String!
-  artistRankJson: String!
-  genreRankJson: String!
+  albumRankJson: StatisticRank!
+  artistRankJson: StatisticRank!
+  titleRankJson: StatisticRank!
   updatedAt: DateTime!
   user: User!
   userId: ID!
 }
 
-input UpdateStatisticInput {
-  albumRankJson: String
-  artistRankJson: String
-  genreRankJson: String
-  userId: ID!
+type StatisticRank {
+  first: String!
+  second: String!
+  third: String!
+}
+
+input StatisticRankInput {
+  first: String!
+  second: String!
+  third: String!
 }
 
 input UpdateUserInput {

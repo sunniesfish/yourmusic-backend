@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { SaveStatisticInput } from './dto/save-statistic.input';
-import { UpdateStatisticInput } from './dto/update-statistic.input';
+import { MutateStatisticInput } from './dto/mutate-statistic.input';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Statistic } from './entities/statistic.entity';
 import { Repository } from 'typeorm';
@@ -12,9 +11,9 @@ export class StatisticService {
     private readonly statisticRepository: Repository<Statistic>,
   ) {}
 
-  async create(saveStatisticInput: SaveStatisticInput, userId: string) {
+  async create(mutateStatisticInput: MutateStatisticInput, userId: string) {
     const statistic = this.statisticRepository.create({
-      ...saveStatisticInput,
+      ...mutateStatisticInput,
       user: { id: userId },
     });
     return await this.statisticRepository.save(statistic);
@@ -26,8 +25,8 @@ export class StatisticService {
     });
   }
 
-  async update(userId: string, updateStatisticInput: UpdateStatisticInput) {
-    return await this.statisticRepository.update(userId, updateStatisticInput);
+  async update(userId: string, mutateStatisticInput: MutateStatisticInput) {
+    return await this.statisticRepository.update(userId, mutateStatisticInput);
   }
 
   async remove(userId: string) {

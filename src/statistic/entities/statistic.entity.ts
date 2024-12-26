@@ -8,6 +8,7 @@ import {
   PrimaryColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { RankType } from '../dto/rank.type';
 
 @ObjectType()
 @Entity()
@@ -17,19 +18,19 @@ export class Statistic {
   userId: string;
 
   @Field()
-  @Column({ type: 'text', nullable: false })
-  artistRankJson: string;
+  @Column({ type: 'json', nullable: false })
+  artistRankJson: RankType;
 
   @Field()
-  @Column({ type: 'text', nullable: false })
-  albumRankJson: string;
+  @Column({ type: 'json', nullable: false })
+  albumRankJson: RankType;
 
   @Field()
-  @Column({ type: 'text', nullable: false })
-  genreRankJson: string;
+  @Column({ type: 'json', nullable: false })
+  titleRankJson: RankType;
 
   @Field()
-  @UpdateDateColumn({ type: 'timestamp', nullable: false })
+  @UpdateDateColumn({ type: 'datetime', nullable: false })
   updatedAt: Date;
 
   @Field(() => User)
