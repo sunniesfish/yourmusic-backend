@@ -1,13 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 export interface SpotifyConfig {
-  clientId: string;
-  clientSecret: string;
-  redirectUri: string;
-  authEndpoint: string;
-  tokenEndpoint: string;
   apiEndpoint: string;
-  scopes: string[];
   addSongBatchSize: number;
   apiLimitPerSecond: number;
   apiLimitPerMinute: number;
@@ -22,18 +16,7 @@ export class SpotifyConfigService {
 }
 
 const spotifyConfig: SpotifyConfig = {
-  clientId: process.env.SPOTIFY_CLIENT_ID!,
-  clientSecret: process.env.SPOTIFY_CLIENT_SECRET!,
-  redirectUri: process.env.SPOTIFY_REDIRECT_URI!,
-  authEndpoint: 'https://accounts.spotify.com/authorize',
-  tokenEndpoint: 'https://accounts.spotify.com/api/token',
-  apiEndpoint: 'https://api.spotify.com/v1',
-  scopes: [
-    'playlist-read-private',
-    'playlist-read-collaborative',
-    'user-read-private',
-    'user-read-email',
-  ],
+  apiEndpoint: process.env.SPOTIFY_API_ENDPOINT!,
   addSongBatchSize: parseInt(process.env.SPOTIFY_ADD_SONG_BATCH_SIZE!),
   apiLimitPerSecond:
     process.env.NODE_ENV === 'production'

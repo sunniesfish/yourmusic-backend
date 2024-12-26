@@ -1,23 +1,22 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { OAuth2Client } from 'google-auth-library';
 import { YoutubeCredentials } from '../entities/youtube-token.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
+import { googleAuthConfigService } from '../configs/google.auth.config';
 
 @Injectable()
 export class GoogleAuthService {
   constructor(
-    private readonly configService: ConfigService,
     @InjectRepository(YoutubeCredentials)
     private readonly youtubeCredentialsRepository: Repository<YoutubeCredentials>,
   ) {}
 
   private createOAuthClient(): OAuth2Client {
     return new OAuth2Client(
-      this.configService.get('GOOGLE_CLIENT_ID'),
-      this.configService.get('GOOGLE_CLIENT_SECRET'),
-      this.configService.get('GOOGLE_REDIRECT_URI'),
+      googleAuthConfigService.getConfig().clientId,
+      googleAuthConfigService.getConfig().clientSecret,
+      googleAuthConfigService.getConfig().redirectUri,
     );
   }
 

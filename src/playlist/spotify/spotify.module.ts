@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { SpotifyService } from './spotify.service';
 import { CommonModule } from '../common/comon.module';
-import { SpotifyConfigService } from './spotifyConfig';
+import { SpotifyConfigService } from './spotify.config';
 
 @Module({
   imports: [CommonModule],

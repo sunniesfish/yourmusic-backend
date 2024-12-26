@@ -1,16 +1,16 @@
+import { Injectable } from '@nestjs/common';
+import {
+  SpotifyAuthConfig,
+  spotifyAuthConfigService,
+} from '../configs/spotify.auth.config';
+
+@Injectable()
 export class SpotifyAuthService {
-  private readonly config = {
-    clientId: 'YOUR_CLIENT_ID',
-    clientSecret: 'YOUR_CLIENT_SECRET',
-    redirectUri: 'YOUR_REDIRECT_URI',
-    authEndpoint: 'https://accounts.spotify.com/authorize',
-    tokenEndpoint: 'https://accounts.spotify.com/api/token',
-    scopes: [
-      'playlist-read-private',
-      'playlist-modify-public',
-      'playlist-modify-private',
-    ],
-  };
+  private readonly config: SpotifyAuthConfig;
+
+  constructor() {
+    this.config = spotifyAuthConfigService.getConfig();
+  }
 
   // 1. 인증 URL 생성
   getAuthUrl(): string {

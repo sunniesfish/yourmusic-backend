@@ -1,9 +1,8 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { SpotifyConfig, SpotifyConfigService } from './spotifyConfig';
+import { SpotifyConfig, SpotifyConfigService } from './spotify.config';
 import { PlaylistJSON } from '../dto/playlist-json.input';
 import ApiRateLimiter from '@sunniesfish/api-rate-limiter';
 import { ScraperService } from '../common/scraper.service';
-
 @Injectable()
 export class SpotifyService {
   private config: SpotifyConfig;
@@ -64,67 +63,6 @@ export class SpotifyService {
       });
     });
   };
-
-  getSpotifyAuthUrl = (): string => {
-    const params = new URLSearchParams({
-      response_type: 'code',
-      client_id: this.config.clientId,
-      scope: this.config.scopes.join(' '),
-      redirect_uri: this.config.redirectUri,
-    });
-    return `${this.config.authEndpoint}?${params.toString()}`;
-  };
-
-  async exchangeCodeForAccessToken(code: string): Promise<string> {
-    const params = new URLSearchParams({
-      grant_type: 'authorization_code',
-      code,
-      redirect_uri: this.config.redirectUri,
-    });
-    const response = await fetch(
-      `${this.config.tokenEndpoint}?${params.toString()}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          Authorization: `Basic ${Buffer.from(
-            `${this.config.clientId}:${this.config.clientSecret}`,
-          ).toString('base64')}`,
-        },
-        body: params.toString(),
-      },
-    );
-    if (!response.ok) {
-      throw new Error('Failed to exchange code for access token');
-    }
-    const data = await response.json();
-    return data.access_token;
-  }
-
-  async refreshAccessToken(refreshToken: string): Promise<string> {
-    const params = new URLSearchParams({
-      grant_type: 'refresh_token',
-      refresh_token: refreshToken,
-    });
-    const response = await fetch(
-      `${this.config.tokenEndpoint}?${params.toString()}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          Authorization: `Basic ${Buffer.from(
-            `${this.config.clientId}:${this.config.clientSecret}`,
-          ).toString('base64')}`,
-        },
-        body: params.toString(),
-      },
-    );
-    if (!response.ok) {
-      throw new Error('Failed to refresh access token');
-    }
-    const data = await response.json();
-    return data.access_token;
-  }
 
   /**
    * 플레이리스트를 스포티파이에 저장하는 함수
