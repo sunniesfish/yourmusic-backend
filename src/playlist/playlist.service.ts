@@ -79,9 +79,27 @@ export class PlaylistService {
     }
   }
 
-  async findAll(userId: string, page: number, limit: number, orderBy: string) {
+  async findAll(
+    userId: string,
+    page: number,
+    limit: number,
+    orderBy: string,
+    fields: Array<keyof Playlist>,
+  ) {
     const skip = (page - 1) * limit;
     const query = this.playlistRepository.createQueryBuilder('playlist');
+
+    const fieldMappings: Record<keyof Playlist, string> = {
+      id: 'playlist.id',
+      name: 'playlist.name',
+      createdAt: 'playlist.createdAt',
+      listJson: 'playlist.listJson',
+      user: 'user.id',
+    };
+
+    fields.forEach((field) => {
+      query.addSelect(fieldMappings[field]);
+    });
 
     query.where('playlist.userId = :userId', { userId });
     if (orderBy === 'createdAt') {

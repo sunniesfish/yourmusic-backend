@@ -24,7 +24,7 @@ export class Playlist {
   @Column({ type: 'varchar', nullable: false })
   name: string;
 
-  @Field(() => [PlaylistJSON])
+  @Field(() => [PlaylistJSON], { nullable: true })
   @Column({ type: 'json', nullable: false })
   listJson: PlaylistJSON[];
 

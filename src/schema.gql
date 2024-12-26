@@ -31,7 +31,7 @@ type Mutation {
 type Playlist {
   createdAt: DateTime!
   id: ID!
-  listJson: [PlaylistJSON!]!
+  listJson: [PlaylistJSON!]
   name: String!
   user: User!
 }

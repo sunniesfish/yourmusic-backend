@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, Int, Info } from '@nestjs/graphql';
 import { PlaylistService } from './playlist.service';
 import { Playlist } from './entities/playlist.entity';
 import { PlaylistJSON } from './dto/playlist-json.input';
@@ -8,6 +8,7 @@ import { ForbiddenException } from '@nestjs/common';
 import { IsPublic } from 'src/global/decorators/ispublic';
 import { UserInput } from 'src/user/dto/user.input';
 import { PlaylistsResponse } from './dto/playlists-response';
+import { GraphQLResolveInfo } from 'graphql';
 
 @Resolver(() => Playlist)
 export class PlaylistResolver {
@@ -33,11 +34,30 @@ export class PlaylistResolver {
     @Args('page', { type: () => Int }) page: number,
     @Args('limit', { type: () => Int }) limit: number,
     @Args('orderBy', { type: () => String }) orderBy: string,
+    @Info() info: GraphQLResolveInfo,
   ) {
     if (user.id === undefined) {
       throw new ForbiddenException();
     }
-    return await this.playlistService.findAll(user.id, page, limit, orderBy);
+
+    const selections = info.fieldNodes[0].selectionSet?.selections || [];
+    const requestedFields = selections.reduce(
+      (acc, field) => {
+        if ('name' in field) {
+          return { ...acc, [field.name.value]: true };
+        }
+        return acc;
+      },
+      {} as Record<string, boolean>,
+    );
+
+    return await this.playlistService.findAll(
+      user.id,
+      page,
+      limit,
+      orderBy,
+      Object.keys(requestedFields) as Array<keyof Playlist>,
+    );
   }
 
   @Query(() => Playlist, { name: 'playlist' })
