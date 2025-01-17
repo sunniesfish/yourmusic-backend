@@ -12,7 +12,7 @@ export class YouTubeAuthError extends Error {
  * 토큰 만료 에러
  */
 export class TokenExpiredError extends YouTubeAuthError {
-  constructor(message: string = '인증이 만료되었습니다') {
+  constructor(message: string = 'Token expired') {
     super(message);
     this.name = 'TokenExpiredError';
   }
@@ -22,7 +22,7 @@ export class TokenExpiredError extends YouTubeAuthError {
  * 토큰 갱신 실패 에러
  */
 export class TokenRefreshError extends YouTubeAuthError {
-  constructor(message: string = '토큰 갱신에 실패했습니다') {
+  constructor(message: string = 'Failed to refresh token') {
     super(message);
     this.name = 'TokenRefreshError';
   }
@@ -32,7 +32,7 @@ export class TokenRefreshError extends YouTubeAuthError {
  * 인증 필요 에러
  */
 export class AuthRequiredError extends YouTubeAuthError {
-  constructor(message: string = 'YouTube 인증이 필요합니다') {
+  constructor(message: string = 'YouTube authentication is required') {
     super(message);
     this.name = 'AuthRequiredError';
   }
@@ -42,7 +42,7 @@ export class AuthRequiredError extends YouTubeAuthError {
  * 잘못된 토큰 에러
  */
 export class InvalidTokenError extends YouTubeAuthError {
-  constructor(message: string = '유효하지 않은 토큰입니다') {
+  constructor(message: string = 'Invalid token') {
     super(message);
     this.name = 'InvalidTokenError';
   }
@@ -62,8 +62,8 @@ export const AUTH_ERROR_CODES = {
  * 에러 메시지 상수
  */
 export const AUTH_ERROR_MESSAGES = {
-  [AUTH_ERROR_CODES.TOKEN_EXPIRED]: '인증이 만료되었습니다',
-  [AUTH_ERROR_CODES.TOKEN_REFRESH_FAILED]: '토큰 갱신에 실패했습니다',
-  [AUTH_ERROR_CODES.AUTH_REQUIRED]: 'YouTube 인증이 필요합니다',
-  [AUTH_ERROR_CODES.INVALID_TOKEN]: '유효하지 않은 토큰입니다',
+  [AUTH_ERROR_CODES.TOKEN_EXPIRED]: 'Token expired',
+  [AUTH_ERROR_CODES.TOKEN_REFRESH_FAILED]: 'Failed to refresh token',
+  [AUTH_ERROR_CODES.AUTH_REQUIRED]: 'YouTube authentication is required',
+  [AUTH_ERROR_CODES.INVALID_TOKEN]: 'Invalid token',
 } as const;

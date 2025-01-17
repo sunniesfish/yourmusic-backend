@@ -5,7 +5,7 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { googleAuthConfigService } from '../configs/google.auth.config';
 import { AuthStatus } from '../interfaces/auth-status.interface';
-import { TokenRefreshError } from '../errors/auth.errors';
+import { TokenRefreshError } from '../errors/google-auth.errors';
 
 @Injectable()
 export class GoogleAuthService {

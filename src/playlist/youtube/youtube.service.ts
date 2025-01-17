@@ -4,13 +4,11 @@ import { YouTubeConfig, YouTubeConfigService } from './youtubeConfig';
 import { YouTubeApiClient } from './youtube-api.client';
 import { ScraperService } from '../common/scraper.service';
 import { GoogleAuthService } from '../../auth/service/google-auth.service';
-import ApiRateLimiter from '@sunniesfish/api-rate-limiter';
 import { YouTubeAuthError } from '../errors/youtube.errors';
 
 @Injectable()
 export class YouTubeService {
   private config: YouTubeConfig;
-  private apiRateLimiter: ApiRateLimiter<any>;
 
   constructor(
     @Inject(forwardRef(() => YouTubeConfigService))
@@ -23,49 +21,33 @@ export class YouTubeService {
     private readonly googleAuthService: GoogleAuthService,
   ) {
     this.config = this.configService.getConfig();
-    this.apiRateLimiter = new ApiRateLimiter(
-      {
-        maxPerSecond: this.config.apiLimitPerSecond,
-        maxPerMinute: this.config.apiLimitPerMinute,
-        maxQueueSize: this.config.apiLimitQueueSize,
-      },
-      (error) => {
-        console.error('YouTube API Rate Limit Error:', error);
-        throw new Error('YouTube API rate limit exceeded');
-      },
-    );
   }
 
   private async executeWithAuth<T>(
     userId: string,
     operation: (oauth2Client: any) => Promise<T>,
   ): Promise<T> {
-    return new Promise((resolve, reject) => {
-      this.apiRateLimiter.addRequest(async () => {
-        try {
-          const oauth2Client =
-            await this.googleAuthService.getOAuthClientForUser(userId);
+    try {
+      const oauth2Client =
+        await this.googleAuthService.getOAuthClientForUser(userId);
 
-          // OAuth 클라이언트 검증
-          if (!oauth2Client.credentials?.access_token) {
-            throw new YouTubeAuthError('access_token is not valid');
-          }
+      // OAuth 클라이언트 검증
+      if (!oauth2Client.credentials?.access_token) {
+        throw new YouTubeAuthError('access_token is not valid');
+      }
 
-          const result = await operation(oauth2Client);
-          resolve(result);
-        } catch (error) {
-          if (error instanceof YouTubeAuthError) {
-            reject(error);
-          } else if (error.message?.includes('invalid_grant')) {
-            reject(new YouTubeAuthError('Expired token'));
-          } else if (error.message?.includes('invalid_token')) {
-            reject(new YouTubeAuthError('Invalid token'));
-          } else {
-            reject(new Error(`YouTube operation failed: ${error.message}`));
-          }
-        }
-      });
-    });
+      return await operation(oauth2Client);
+    } catch (error) {
+      if (error instanceof YouTubeAuthError) {
+        throw error;
+      } else if (error.message?.includes('invalid_grant')) {
+        throw new YouTubeAuthError('Expired token');
+      } else if (error.message?.includes('invalid_token')) {
+        throw new YouTubeAuthError('Invalid token');
+      } else {
+        throw new Error(`YouTube operation failed: ${error.message}`);
+      }
+    }
   }
 
   async convertToYoutubePlaylist(
