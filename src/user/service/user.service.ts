@@ -56,4 +56,9 @@ export class UserService {
       await queryRunner.release();
     }
   }
+
+  async checkId(id: string) {
+    const user = await this.userRepository.findOne({ where: { id } });
+    return user ? true : false;
+  }
 }

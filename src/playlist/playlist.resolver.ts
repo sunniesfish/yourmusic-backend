@@ -9,6 +9,8 @@ import { IsPublic } from 'src/global/decorators/ispublic';
 import { UserInput } from 'src/user/dto/user.input';
 import { PlaylistsResponse } from './dto/playlists-response';
 import { GraphQLResolveInfo } from 'graphql';
+import { UnauthorizedException } from '@nestjs/common';
+import { YouTubeAuthError } from './errors/youtube.errors';
 
 @Resolver(() => Playlist)
 export class PlaylistResolver {
@@ -104,12 +106,19 @@ export class PlaylistResolver {
     @Args('listJSON', { type: () => [PlaylistJSON] })
     listJSON: PlaylistJSON[],
   ) {
-    if (user.id === undefined) {
-      throw new ForbiddenException();
+    try {
+      return await this.playlistService.convertToYoutubePlaylist(
+        user.id,
+        listJSON,
+      );
+    } catch (error) {
+      if (error instanceof YouTubeAuthError) {
+        throw new UnauthorizedException({
+          message: error.message,
+          code: 'YOUTUBE_AUTH_REQUIRED',
+        });
+      }
+      throw error;
     }
-    return await this.playlistService.convertToYoutubePlaylist(
-      user.id,
-      listJSON,
-    );
   }
 }

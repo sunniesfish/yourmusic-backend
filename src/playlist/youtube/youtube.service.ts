@@ -5,6 +5,7 @@ import { YouTubeApiClient } from './youtube-api.client';
 import { ScraperService } from '../common/scraper.service';
 import { GoogleAuthService } from '../../auth/service/google-auth.service';
 import ApiRateLimiter from '@sunniesfish/api-rate-limiter';
+import { YouTubeAuthError } from '../errors/youtube.errors';
 
 @Injectable()
 export class YouTubeService {
@@ -44,10 +45,24 @@ export class YouTubeService {
         try {
           const oauth2Client =
             await this.googleAuthService.getOAuthClientForUser(userId);
+
+          // OAuth 클라이언트 검증
+          if (!oauth2Client.credentials?.access_token) {
+            throw new YouTubeAuthError('access_token is not valid');
+          }
+
           const result = await operation(oauth2Client);
           resolve(result);
         } catch (error) {
-          reject(error);
+          if (error instanceof YouTubeAuthError) {
+            reject(error);
+          } else if (error.message?.includes('invalid_grant')) {
+            reject(new YouTubeAuthError('Expired token'));
+          } else if (error.message?.includes('invalid_token')) {
+            reject(new YouTubeAuthError('Invalid token'));
+          } else {
+            reject(new Error(`YouTube operation failed: ${error.message}`));
+          }
         }
       });
     });
@@ -58,7 +73,6 @@ export class YouTubeService {
     playlistJSON: PlaylistJSON[],
   ): Promise<boolean> {
     try {
-      // 1. 플레이리스트 생성
       const playlistId = await this.executeWithAuth(
         userId,
         async (oauth2Client) => {
@@ -69,11 +83,13 @@ export class YouTubeService {
         },
       );
 
-      // 2. 곡 검색 및 추가 (배치 처리)
       await this.processSongsInBatches(userId, playlistId, playlistJSON);
       return true;
     } catch (error) {
-      throw new Error(`Failed to convert to YouTube playlist: ${error}`);
+      if (error instanceof YouTubeAuthError) {
+        throw error;
+      }
+      throw new Error(`Playlist conversion failed: ${error.message}`);
     }
   }
 

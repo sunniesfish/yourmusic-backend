@@ -50,6 +50,12 @@ export class AuthResolver {
     return true;
   }
 
+  @IsPublic()
+  @Mutation(() => Boolean)
+  async checkId(@Args('id') id: string) {
+    return await this.userService.checkId(id);
+  }
+
   @Mutation(() => Boolean)
   async checkPassword(
     @CurrentUser() user: UserInput,

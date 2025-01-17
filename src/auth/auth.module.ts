@@ -12,8 +12,6 @@ import { ConfigService } from '@nestjs/config';
 import { ConfigModule } from '@nestjs/config';
 import { GoogleAuthService } from './service/google-auth.service';
 import { YoutubeCredentials } from './entities/youtube-token.entity';
-import { YouTubeAuthInterceptor } from './intercepter/youtube-auth.interceptor';
-import { APP_INTERCEPTOR } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -34,16 +32,7 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
     ]),
     UserModule,
   ],
-  providers: [
-    AuthService,
-    AuthResolver,
-    JwtService,
-    GoogleAuthService,
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: YouTubeAuthInterceptor,
-    },
-  ],
+  providers: [AuthService, AuthResolver, JwtService, GoogleAuthService],
   exports: [AuthService, GoogleAuthService],
 })
 export class AuthModule {}

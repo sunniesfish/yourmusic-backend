@@ -21,6 +21,7 @@ input MutateStatisticInput {
 
 type Mutation {
   changePassword(input: ChangePasswordInput!): User!
+  checkId(id: String!): Boolean!
   checkPassword(input: ChangePasswordInput!): Boolean!
   convertToYoutubePlaylist(listJSON: [PlaylistJSONInput!]!): Boolean!
   readPlaylist(link: String!): [PlaylistJSON!]!
