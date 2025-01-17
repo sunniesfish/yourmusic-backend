@@ -16,8 +16,8 @@ export class YoutubeAuthResolver {
   }
 
   @IsPublic()
-  @Mutation(() => Boolean)
-  async getAuthUrl() {
-    return await this.googleAuthService.getAuthUrl();
+  @Mutation(() => String)
+  getAuthUrl() {
+    return this.googleAuthService.getAuthUrl();
   }
 }
