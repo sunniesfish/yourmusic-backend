@@ -50,6 +50,7 @@ export class AuthResolver {
     return true;
   }
 
+  //if id is already exist, return true, else return false
   @IsPublic()
   @Mutation(() => Boolean)
   async checkId(@Args('id') id: string) {

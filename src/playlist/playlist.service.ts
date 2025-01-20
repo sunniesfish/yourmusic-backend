@@ -30,11 +30,8 @@ export class PlaylistService {
     );
   }
 
-  async convertToYoutubePlaylist(userId: string, playlistJSON: PlaylistJSON[]) {
-    return await this.youtubeService.convertToYoutubePlaylist(
-      userId,
-      playlistJSON,
-    );
+  async convertToYoutubePlaylist(playlistJSON: PlaylistJSON[]) {
+    return await this.youtubeService.convertToYoutubePlaylist(playlistJSON);
   }
 
   async read(link: string): Promise<PlaylistJSON[]> {

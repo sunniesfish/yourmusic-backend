@@ -5,12 +5,13 @@ import { PlaylistJSON } from './dto/playlist-json.input';
 import { SavePlaylistInput } from './dto/save-playlist.input';
 import { CurrentUser } from 'src/global/decorators/current-user';
 import { ForbiddenException } from '@nestjs/common';
-import { IsPublic } from 'src/global/decorators/ispublic';
 import { UserInput } from 'src/user/dto/user.input';
 import { PlaylistsResponse } from './dto/playlists-response';
 import { GraphQLResolveInfo } from 'graphql';
 import { UnauthorizedException } from '@nestjs/common';
 import { YouTubeAuthError } from './errors/youtube.errors';
+import { AuthLevel } from 'src/auth/enums/auth-level.enum';
+import { Auth } from 'src/global/decorators/auth.decorator';
 
 @Resolver(() => Playlist)
 export class PlaylistResolver {
@@ -84,33 +85,29 @@ export class PlaylistResolver {
     return await this.playlistService.remove(id, user.id);
   }
 
-  @IsPublic()
+  @Auth(AuthLevel.OPTIONAL)
   @Mutation(() => [PlaylistJSON])
   async readPlaylist(@Args('link', { type: () => String }) link: string) {
     return await this.playlistService.read(link);
   }
 
-  // @IsPublic()
-  // @Mutation(() => Boolean)
-  // async convertToSpotifyPlaylist(
-  //   @Args('listJSON', { type: () => [PlaylistJSON] })
-  //   listJSON: PlaylistJSON[],
-  // ) {
-  //   return await this.playlistService.convertToSpotifyPlaylist();
-  // }
+  @Auth(AuthLevel.OPTIONAL)
+  @Mutation(() => Boolean)
+  async convertToSpotifyPlaylist(
+    @Args('listJSON', { type: () => [PlaylistJSON] })
+    listJSON: PlaylistJSON[],
+  ) {
+    return await this.playlistService.convertToSpotifyPlaylist(listJSON);
+  }
 
-  @IsPublic()
+  @Auth(AuthLevel.OPTIONAL)
   @Mutation(() => Boolean)
   async convertToYoutubePlaylist(
-    @CurrentUser() user: UserInput,
     @Args('listJSON', { type: () => [PlaylistJSON] })
     listJSON: PlaylistJSON[],
   ) {
     try {
-      return await this.playlistService.convertToYoutubePlaylist(
-        user.id,
-        listJSON,
-      );
+      return await this.playlistService.convertToYoutubePlaylist(listJSON);
     } catch (error) {
       if (error instanceof YouTubeAuthError) {
         throw new UnauthorizedException({

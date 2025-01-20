@@ -91,7 +91,7 @@ export class GoogleAuthService {
         return {
           isAuthenticated: false,
           needsReauth: true,
-          message: '인증이 필요합니다',
+          message: 'Authentication is required',
         };
       }
 
@@ -101,7 +101,7 @@ export class GoogleAuthService {
         return {
           isAuthenticated: false,
           needsReauth: true,
-          message: '재인증이 필요합니다',
+          message: 'Reauthentication is required',
         };
       }
 
