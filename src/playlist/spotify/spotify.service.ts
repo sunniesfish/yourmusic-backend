@@ -37,20 +37,20 @@ export class SpotifyService {
   };
 
   async convertToSpotifyPlaylist(
-    spotifyUserId: string,
+    userId: string | null,
     accessToken: string,
     playlistJSON: PlaylistJSON[],
   ) {
     try {
       const playlist = await this.spotifyApiClient.createPlaylist(
-        spotifyUserId,
+        userId,
         accessToken,
         playlistJSON[0].title,
       );
 
       const searchResults = await Promise.allSettled(
         playlistJSON.map((song) =>
-          this.spotifyApiClient.searchSong(accessToken, {
+          this.spotifyApiClient.searchSong(userId, accessToken, {
             title: song.title,
             artist: song.artist,
           }),
@@ -65,6 +65,7 @@ export class SpotifyService {
         .map((result) => result.value);
 
       await this.spotifyApiClient.addSongsToPlaylist(
+        userId,
         accessToken,
         playlist.playlistId,
         validSongUris,

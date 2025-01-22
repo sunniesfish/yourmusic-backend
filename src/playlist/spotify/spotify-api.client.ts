@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { SpotifyConfigService } from './spotify.config';
 import ApiRateLimiter from '@sunniesfish/api-rate-limiter';
 import { SpotifyAuthService } from '../../auth/service/spotify-auth.service';
@@ -44,6 +44,7 @@ export class SpotifyApiClient {
   }
 
   private async makeRequest<T>(
+    userId: string | null,
     accessToken: string,
     url: string,
     options: RequestInit = {},
@@ -60,7 +61,21 @@ export class SpotifyApiClient {
     if (response.status === 429) {
       const retryAfter = parseInt(response.headers.get('Retry-After') || '1');
       await new Promise((resolve) => setTimeout(resolve, retryAfter * 1000));
-      return this.makeRequest<T>(accessToken, url, options);
+      return this.makeRequest<T>(userId, accessToken, url, options);
+    }
+
+    if (response.status === 401) {
+      if (userId) {
+        const newAccessToken =
+          await this.spotifyAuthService.refreshAccessToken(userId);
+        return this.makeRequest<T>(
+          userId,
+          newAccessToken.access_token,
+          url,
+          options,
+        );
+      }
+      throw new UnauthorizedException('Failed to refresh access token');
     }
 
     const data: SpotifyResponse<T> = await response.json();
@@ -75,7 +90,7 @@ export class SpotifyApiClient {
   }
 
   async createPlaylist(
-    userId: string,
+    userId: string | null,
     accessToken: string,
     name: string,
   ): Promise<{
@@ -85,8 +100,9 @@ export class SpotifyApiClient {
   }> {
     return this.apiRateLimiter.addRequest(async () => {
       const data = await this.makeRequest<SpotifyPlaylistResponse>(
+        userId,
         accessToken,
-        `${this.configService.getConfig().apiEndpoint}/users/${userId}/playlists`,
+        `${this.configService.getConfig().apiEndpoint}/me/playlists`,
         {
           method: 'POST',
           body: JSON.stringify({
@@ -106,6 +122,7 @@ export class SpotifyApiClient {
   }
 
   async searchSong(
+    userId: string | null,
     accessToken: string,
     songData: { title: string; artist: string },
   ): Promise<{ songUri: string } | null> {
@@ -115,6 +132,7 @@ export class SpotifyApiClient {
         : `track:${songData.title}`;
 
       const data = await this.makeRequest<SpotifySearchResponse>(
+        userId,
         accessToken,
         `${this.configService.getConfig().apiEndpoint}/search?q=${encodeURIComponent(
           query,
@@ -128,6 +146,7 @@ export class SpotifyApiClient {
   }
 
   async addSongsToPlaylist(
+    userId: string | null,
     accessToken: string,
     playlistId: string,
     songUris: { songUri: string }[],
@@ -138,6 +157,7 @@ export class SpotifyApiClient {
       const batch = songUris.slice(i, i + batchSize);
       await this.apiRateLimiter.addRequest(async () => {
         await this.makeRequest(
+          userId,
           accessToken,
           `${this.configService.getConfig().apiEndpoint}/playlists/${playlistId}/tracks`,
           {

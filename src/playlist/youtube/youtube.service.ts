@@ -24,39 +24,34 @@ export class YouTubeService {
   }
 
   private async executeWithAuth<T>(
-    userId: string,
+    userId: string | null,
+    accessToken: string,
     operation: (oauth2Client: any) => Promise<T>,
   ): Promise<T> {
     try {
-      const oauth2Client =
-        await this.googleAuthService.getOAuthClientForUser(userId);
-
-      // OAuth 클라이언트 검증
-      if (!oauth2Client.credentials?.access_token) {
-        throw new YouTubeAuthError('access_token is not valid');
-      }
+      const oauth2Client = await this.googleAuthService.getOAuthClient(
+        userId,
+        accessToken,
+      );
 
       return await operation(oauth2Client);
     } catch (error) {
-      if (error instanceof YouTubeAuthError) {
-        throw error;
-      } else if (error.message?.includes('invalid_grant')) {
-        throw new YouTubeAuthError('Expired token');
-      } else if (error.message?.includes('invalid_token')) {
+      if (error.message?.includes('invalid_token')) {
         throw new YouTubeAuthError('Invalid token');
-      } else {
-        throw new Error(`YouTube operation failed: ${error.message}`);
       }
+      throw new Error(`YouTube operation failed: ${error.message}`);
     }
   }
 
   async convertToYoutubePlaylist(
-    userId: string,
+    userId: string | null,
+    accessToken: string,
     playlistJSON: PlaylistJSON[],
   ): Promise<boolean> {
     try {
       const playlistId = await this.executeWithAuth(
         userId,
+        accessToken,
         async (oauth2Client) => {
           return this.youtubeApiClient.createPlaylist(
             oauth2Client,

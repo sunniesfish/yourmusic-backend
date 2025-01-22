@@ -6,6 +6,7 @@ export interface CurrentUserType {
   username: string;
 }
 
+//get user from request
 export const CurrentUser = createParamDecorator(
   (data: unknown, context: ExecutionContext): CurrentUserType => {
     const ctx = GqlExecutionContext.create(context);

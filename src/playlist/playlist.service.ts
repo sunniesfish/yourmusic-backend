@@ -19,19 +19,27 @@ export class PlaylistService {
   ) {}
 
   async convertToSpotifyPlaylist(
-    spotifyUserId: string,
+    userId: string,
     accessToken: string,
     playlistJSON: PlaylistJSON[],
   ) {
     return await this.spotifyService.convertToSpotifyPlaylist(
-      spotifyUserId,
+      userId,
       accessToken,
       playlistJSON,
     );
   }
 
-  async convertToYoutubePlaylist(playlistJSON: PlaylistJSON[]) {
-    return await this.youtubeService.convertToYoutubePlaylist(playlistJSON);
+  async convertToYoutubePlaylist(
+    userId: string | null,
+    accessToken: string,
+    playlistJSON: PlaylistJSON[],
+  ) {
+    return await this.youtubeService.convertToYoutubePlaylist(
+      userId,
+      accessToken,
+      playlistJSON,
+    );
   }
 
   async read(link: string): Promise<PlaylistJSON[]> {

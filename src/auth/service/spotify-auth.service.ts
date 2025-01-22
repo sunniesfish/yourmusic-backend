@@ -61,13 +61,18 @@ export class SpotifyAuthService {
     return tokens;
   }
 
-  async refreshAccessToken(
-    userId: string,
-    refreshToken: string,
-  ): Promise<SpotifyTokenResponse> {
+  async refreshAccessToken(userId: string): Promise<SpotifyTokenResponse> {
+    const token = await this.spotifyTokenRepository.findOne({
+      where: { userId },
+    });
+
+    if (!token) {
+      throw new AuthorizationError('Token not found');
+    }
+
     const params = new URLSearchParams({
       grant_type: 'refresh_token',
-      refresh_token: refreshToken,
+      refresh_token: token.refreshToken,
     });
 
     const response = await fetch(spotifyAuthConfig.tokenEndpoint, {
@@ -106,6 +111,7 @@ export class SpotifyAuthService {
         where: { userId },
       });
 
+      // if token is not exist, return false
       if (!token) {
         return {
           isAuthenticated: false,
@@ -114,32 +120,7 @@ export class SpotifyAuthService {
         };
       }
 
-      const isExpired = token.expiresAt < new Date();
-
-      if (isExpired && !token.refreshToken) {
-        return {
-          isAuthenticated: false,
-          needsReauth: true,
-          message: 'Reauthentication is required',
-        };
-      }
-
-      if (isExpired) {
-        try {
-          await this.refreshAccessToken(userId, token.refreshToken);
-          return {
-            isAuthenticated: true,
-            needsReauth: false,
-          };
-        } catch (error) {
-          return {
-            isAuthenticated: false,
-            needsReauth: true,
-            message: error.message,
-          };
-        }
-      }
-
+      // if token is exist, return true
       return {
         isAuthenticated: true,
         needsReauth: false,
