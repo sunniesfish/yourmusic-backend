@@ -22,8 +22,9 @@ import { GraphQLResolveInfo } from 'graphql';
 import { UnauthorizedException } from '@nestjs/common';
 import { YouTubeAuthError } from './errors/youtube.errors';
 import { AuthLevel } from 'src/auth/enums/auth-level.enum';
-import { Auth } from 'src/global/decorators/auth.decorator';
+import { Auth, RequireOAuth } from 'src/global/decorators/auth.decorator';
 import { OAuthGuard } from 'src/auth/guards/oauth-auth.guard';
+import { ApiDomain } from 'src/auth/enums/api-domain.enum';
 
 @Resolver(() => Playlist)
 export class PlaylistResolver {
@@ -114,19 +115,23 @@ export class PlaylistResolver {
    */
   @Auth(AuthLevel.OPTIONAL)
   @UseGuards(OAuthGuard)
+  @RequireOAuth(ApiDomain.SPOTIFY)
   @Mutation(() => Boolean)
   async convertToSpotifyPlaylist(
     @CurrentUser() user: CurrentUserType,
     @Args('listJSON', { type: () => [PlaylistJSON] })
     listJSON: PlaylistJSON[],
-    @Args('authorizationCode', { type: () => String })
+    @Args('authorizationCode', { type: () => String, nullable: true })
     authorizationCode: string,
-    @Context() context: any,
+    @Context() ctx: any,
   ) {
-    const accessToken = context.req.cookies['spotify_access_token'];
+    const accessToken = ctx.accessToken;
+    if (accessToken) {
+    }
     return await this.playlistService.convertToSpotifyPlaylist(
       user.id,
       authorizationCode,
+      accessToken,
       listJSON,
     );
   }

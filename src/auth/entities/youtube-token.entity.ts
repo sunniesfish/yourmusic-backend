@@ -11,10 +11,6 @@ export class YoutubeCredentials {
 
   @Field()
   @Column({ type: 'text', nullable: true })
-  accessToken: string;
-
-  @Field()
-  @Column({ type: 'text', nullable: true })
   refreshToken: string;
 
   @Field()

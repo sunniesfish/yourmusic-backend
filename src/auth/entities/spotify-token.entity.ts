@@ -14,10 +14,6 @@ export class SpotifyToken {
   @PrimaryColumn({ type: 'varchar' })
   userId: string;
 
-  @Field(() => String, { description: 'Spotify API access token' })
-  @Column({ type: 'text', nullable: false })
-  accessToken: string;
-
   @Field(() => String, {
     nullable: true,
     description: 'Token refresh token',

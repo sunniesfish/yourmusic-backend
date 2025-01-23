@@ -4,16 +4,26 @@ import { YoutubeCredentials } from '../entities/youtube-token.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { googleAuthConfigService } from '../configs/google.auth.config';
-import { AuthStatus } from '../interfaces/auth-status.interface';
-import { TokenRefreshError } from '../errors/google-auth.errors';
+import { OAuth2Service } from './oauth2.service';
+import {
+  OAuth2AuthResponse,
+  OAuth2TokenResponse,
+} from '../interfaces/auth-status.interface';
+import { AuthorizationError } from '../errors/spotify-auth.errors';
 
 @Injectable()
-export class GoogleAuthService {
+export class GoogleAuthService extends OAuth2Service {
   constructor(
     @InjectRepository(YoutubeCredentials)
     private readonly youtubeCredentialsRepository: Repository<YoutubeCredentials>,
-  ) {}
+  ) {
+    super();
+  }
 
+  /**
+   * create oauth2 client
+   * @returns oauth2 client
+   */
   private createOAuthClient(): OAuth2Client {
     return new OAuth2Client(
       googleAuthConfigService.getConfig().clientId,
@@ -28,47 +38,23 @@ export class GoogleAuthService {
     refreshToken: string | null,
   ): Promise<OAuth2Client> {
     const oauth2Client = this.createOAuthClient();
-    if (userId) {
-      const credentials = await this.getUserTokens(userId);
-      if (credentials) {
-        if (credentials.expiryDate < Date.now() && credentials.refreshToken) {
-          try {
-            oauth2Client.setCredentials({
-              refresh_token: credentials.refreshToken,
-            });
-            const { credentials: newCredentials } =
-              await oauth2Client.refreshAccessToken();
-            await this.youtubeCredentialsRepository.update(
-              { userId },
-              {
-                accessToken: newCredentials.access_token,
-                expiryDate: newCredentials.expiry_date,
-              },
-            );
-            oauth2Client.setCredentials(newCredentials);
-          } catch (error) {
-            throw new TokenRefreshError(error.message);
-          }
-        } else {
-          oauth2Client.setCredentials(credentials);
-        }
-      }
+    if (!userId) {
+      oauth2Client.setCredentials({
+        access_token: accessToken,
+      });
+      return oauth2Client;
     }
+
+    oauth2Client.setCredentials({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
     return oauth2Client;
   }
-
-  private async getUserTokens(
-    userId: string | null,
-  ): Promise<YoutubeCredentials | null> {
-    if (!userId) {
-      return null;
-    }
-    const youtubeCredentials = await this.youtubeCredentialsRepository.findOne({
-      where: { userId },
-    });
-    return youtubeCredentials ? youtubeCredentials : null;
-  }
-
+  /**
+   * create auth url
+   * @returns auth url
+   */
   getAuthUrl(): string {
     const oauth2Client = this.createOAuthClient();
     return oauth2Client.generateAuthUrl({
@@ -78,74 +64,66 @@ export class GoogleAuthService {
     });
   }
 
-  async getToken(code: string, userId: string | null) {
+  /**
+   * get access token and refresh token
+   * @param authResponse - auth response
+   * @param userId - user id
+   * @returns OAuth2TokenResponse
+   */
+  async getToken(
+    authResponse: OAuth2AuthResponse,
+    userId: string | null,
+  ): Promise<OAuth2TokenResponse> {
     const oauth2Client = this.createOAuthClient();
-    const { tokens } = await oauth2Client.getToken(code);
+    const { tokens } = await oauth2Client.getToken(authResponse.code);
 
     if (userId) {
       await this.youtubeCredentialsRepository.save({
         userId,
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
-        expiry_date: tokens.expiry_date,
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token,
+        expiryDate: tokens.expiry_date,
       });
     }
 
-    return tokens;
+    return {
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      expires_in: tokens.expiry_date,
+      token_type: 'Bearer',
+    };
   }
 
-  async checkAuthStatus(userId: string | null): Promise<AuthStatus> {
-    try {
-      const credentials = await this.getUserTokens(userId);
+  /**
+   * refresh access token
+   * @param userId - user id
+   * @returns OAuth2TokenResponse
+   */
+  async refreshAccessToken(userId: string): Promise<OAuth2TokenResponse> {
+    const oauth2Client = this.createOAuthClient();
+    const credentials = await this.youtubeCredentialsRepository.findOne({
+      where: { userId },
+    });
 
-      if (!credentials) {
-        return {
-          isAuthenticated: false,
-          needsReauth: true,
-          message: 'Authentication is required',
-        };
-      }
-
-      const isExpired = credentials.expiryDate < Date.now();
-
-      if (isExpired && !credentials.refreshToken) {
-        return {
-          isAuthenticated: false,
-          needsReauth: true,
-          message: 'Reauthentication is required',
-        };
-      }
-
-      if (isExpired) {
-        try {
-          const oauth2Client = this.createOAuthClient();
-          oauth2Client.setCredentials({
-            refresh_token: credentials.refreshToken,
-          });
-          await oauth2Client.refreshAccessToken();
-          return {
-            isAuthenticated: true,
-            needsReauth: false,
-          };
-        } catch (error) {
-          return {
-            isAuthenticated: false,
-            needsReauth: true,
-            message: error.message,
-          };
-        }
-      }
-
-      return {
-        isAuthenticated: true,
-        needsReauth: false,
-      };
-    } catch (error) {
-      return {
-        isAuthenticated: false,
-        needsReauth: true,
-        message: error.message,
-      };
+    if (!credentials.refreshToken) {
+      throw new AuthorizationError('Refresh token not found');
     }
+
+    oauth2Client.setCredentials({
+      refresh_token: credentials.refreshToken,
+    });
+    const { credentials: newCredentials } =
+      await oauth2Client.refreshAccessToken();
+
+    await this.youtubeCredentialsRepository.update(userId, {
+      refreshToken: newCredentials.refresh_token,
+      expiryDate: newCredentials.expiry_date,
+    });
+    return {
+      access_token: newCredentials.access_token,
+      token_type: newCredentials.token_type,
+      expires_in: newCredentials.expiry_date,
+      refresh_token: newCredentials.refresh_token,
+    };
   }
 }

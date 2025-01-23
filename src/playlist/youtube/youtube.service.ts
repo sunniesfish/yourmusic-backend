@@ -32,6 +32,7 @@ export class YouTubeService {
       const oauth2Client = await this.googleAuthService.getOAuthClient(
         userId,
         accessToken,
+        null,
       );
 
       return await operation(oauth2Client);
@@ -60,7 +61,12 @@ export class YouTubeService {
         },
       );
 
-      await this.processSongsInBatches(userId, playlistId, playlistJSON);
+      await this.processSongsInBatches(
+        userId,
+        playlistId,
+        playlistJSON,
+        accessToken,
+      );
       return true;
     } catch (error) {
       if (error instanceof YouTubeAuthError) {
@@ -74,12 +80,15 @@ export class YouTubeService {
     userId: string,
     playlistId: string,
     songs: PlaylistJSON[],
+    accessToken: string,
   ): Promise<void> {
     const batchSize = this.config.batchSize;
     for (let i = 0; i < songs.length; i += batchSize) {
       const batch = songs.slice(i, i + batchSize);
       await Promise.all(
-        batch.map((song) => this.processOneSong(userId, playlistId, song)),
+        batch.map((song) =>
+          this.processOneSong(userId, playlistId, song, accessToken),
+        ),
       );
     }
   }
@@ -88,25 +97,31 @@ export class YouTubeService {
     userId: string,
     playlistId: string,
     song: PlaylistJSON,
+    accessToken: string,
   ): Promise<void> {
     try {
       const searchQuery = `${song.title} ${song.artist}`;
 
       const videoId = await this.executeWithAuth(
         userId,
+        accessToken,
         async (oauth2Client) => {
           return this.youtubeApiClient.searchVideo(oauth2Client, searchQuery);
         },
       );
 
       if (videoId) {
-        await this.executeWithAuth(userId, async (oauth2Client) => {
-          return this.youtubeApiClient.addToPlaylist(
-            oauth2Client,
-            playlistId,
-            videoId,
-          );
-        });
+        await this.executeWithAuth(
+          userId,
+          accessToken,
+          async (oauth2Client) => {
+            return this.youtubeApiClient.addToPlaylist(
+              oauth2Client,
+              playlistId,
+              videoId,
+            );
+          },
+        );
       }
     } catch (error) {
       console.error(`Failed to process song: ${song.title}`, error);

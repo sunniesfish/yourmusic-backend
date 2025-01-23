@@ -3,20 +3,29 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SpotifyToken } from '../entities/spotify-token.entity';
 import { spotifyAuthConfig } from '../configs/spotify.auth.config';
-import { AuthStatus } from '../interfaces/auth-status.interface';
 import {
   AuthorizationError,
   TokenRefreshError,
 } from '../errors/spotify-auth.errors';
-import { SpotifyTokenResponse } from '../interfaces/spotify-auth.interfaces';
+import { OAuth2Service } from './oauth2.service';
+import {
+  OAuth2AuthResponse,
+  OAuth2TokenResponse,
+} from '../interfaces/auth-status.interface';
 
 @Injectable()
-export class SpotifyAuthService {
+export class SpotifyAuthService extends OAuth2Service {
   constructor(
     @InjectRepository(SpotifyToken)
     private readonly spotifyTokenRepository: Repository<SpotifyToken>,
-  ) {}
+  ) {
+    super();
+  }
 
+  /**
+   * get auth url
+   * @returns auth url
+   */
   getAuthUrl(): string {
     const params = new URLSearchParams({
       response_type: 'code',
@@ -31,10 +40,19 @@ export class SpotifyAuthService {
     return `${spotifyAuthConfig.authEndpoint}?${params.toString()}`;
   }
 
-  async getToken(code: string, userId: string) {
+  /**
+   * get access token and refresh token
+   * @param authResponse - auth response
+   * @param userId - user id
+   * @returns OAuth2TokenResponse
+   */
+  async getToken(
+    authResponse: OAuth2AuthResponse,
+    userId: string,
+  ): Promise<OAuth2TokenResponse> {
     const params = new URLSearchParams({
       grant_type: 'authorization_code',
-      code,
+      code: authResponse.code,
       redirect_uri: spotifyAuthConfig.redirectUri,
     });
 
@@ -53,26 +71,35 @@ export class SpotifyAuthService {
 
     await this.spotifyTokenRepository.save({
       userId,
-      accessToken: tokens.access_token,
       refreshToken: tokens.refresh_token,
-      expiresAt: new Date(Date.now() + tokens.expires_in * 1000),
+      expiryDate: tokens.expires_in,
     });
 
-    return tokens;
+    return {
+      access_token: tokens.access_token,
+      token_type: tokens.token_type,
+      expires_in: tokens.expires_in,
+      refresh_token: tokens.refresh_token,
+    };
   }
 
-  async refreshAccessToken(userId: string): Promise<SpotifyTokenResponse> {
-    const token = await this.spotifyTokenRepository.findOne({
+  /**
+   * refresh access token
+   * @param userId - user id
+   * @returns OAuth2TokenResponse
+   */
+  async refreshAccessToken(userId: string): Promise<OAuth2TokenResponse> {
+    const credentials = await this.spotifyTokenRepository.findOne({
       where: { userId },
     });
 
-    if (!token) {
-      throw new AuthorizationError('Token not found');
+    if (!credentials.refreshToken) {
+      throw new AuthorizationError('Refresh token not found');
     }
 
     const params = new URLSearchParams({
       grant_type: 'refresh_token',
-      refresh_token: token.refreshToken,
+      refresh_token: credentials.refreshToken,
     });
 
     const response = await fetch(spotifyAuthConfig.tokenEndpoint, {
@@ -88,93 +115,23 @@ export class SpotifyAuthService {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new TokenRefreshError(error.error?.message || '토큰 갱신 실패');
+      throw new TokenRefreshError(
+        error.error?.message || 'Token refresh failed',
+      );
     }
 
-    const tokens: SpotifyTokenResponse = await response.json();
+    const newCredentials = await response.json();
 
-    await this.spotifyTokenRepository.update(
-      { userId },
-      {
-        accessToken: tokens.access_token,
-        expiresAt: new Date(Date.now() + tokens.expires_in * 1000),
-        ...(tokens.refresh_token && { refreshToken: tokens.refresh_token }),
-      },
-    );
-
-    return tokens;
-  }
-
-  async checkAuthStatus(userId: string): Promise<AuthStatus> {
-    try {
-      const token = await this.spotifyTokenRepository.findOne({
-        where: { userId },
-      });
-
-      // if token is not exist, return false
-      if (!token) {
-        return {
-          isAuthenticated: false,
-          needsReauth: true,
-          message: 'Authentication is required',
-        };
-      }
-
-      // if token is exist, return true
-      return {
-        isAuthenticated: true,
-        needsReauth: false,
-      };
-    } catch (error) {
-      return {
-        isAuthenticated: false,
-        needsReauth: true,
-        message: error.message,
-      };
-    }
-  }
-
-  private generateRandomString(length: number): string {
-    const possible =
-      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let text = '';
-    for (let i = 0; i < length; i++) {
-      text += possible.charAt(Math.floor(Math.random() * possible.length));
-    }
-    return text;
-  }
-
-  async getSpotifyApi(userId: string) {
-    const token = await this.spotifyTokenRepository.findOne({
-      where: { userId },
+    await this.spotifyTokenRepository.update(userId, {
+      expiresAt: new Date(Date.now() + newCredentials.expires_in * 1000),
+      refreshToken: newCredentials.refresh_token,
     });
 
-    if (!token) {
-      throw new AuthorizationError('Token not found');
-    }
-
-    if (token.expiresAt < new Date()) {
-      if (!token.refreshToken) {
-        throw new TokenRefreshError('Refresh token is not available');
-      }
-
-      try {
-        const newToken = await this.refreshAccessToken(
-          userId,
-          token.refreshToken,
-        );
-        return {
-          accessToken: newToken.access_token,
-          expiresAt: new Date(Date.now() + newToken.expires_in * 1000),
-        };
-      } catch (error) {
-        throw new TokenRefreshError(error.message);
-      }
-    }
-
     return {
-      accessToken: token.accessToken,
-      expiresAt: token.expiresAt,
+      access_token: newCredentials.access_token,
+      token_type: newCredentials.token_type,
+      expires_in: newCredentials.expires_in,
+      refresh_token: newCredentials.refresh_token,
     };
   }
 }
