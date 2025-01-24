@@ -126,4 +126,12 @@ export class GoogleAuthService extends OAuth2Service {
       refresh_token: newCredentials.refresh_token,
     };
   }
+
+  /**
+   * sign out
+   * @param userId - user id
+   */
+  async signOut(userId: string): Promise<void> {
+    await this.youtubeCredentialsRepository.delete({ userId });
+  }
 }

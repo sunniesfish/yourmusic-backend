@@ -135,9 +135,12 @@ export class AuthService {
 
   async checkPassword(userId: string, password: string) {
     const user = await this.userRepository.findOne({
-      where: { id: userId, password },
+      where: { id: userId },
     });
-    return user ? true : false;
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return await bcrypt.compare(password, user.password);
   }
 
   async changePassword(input: ChangePasswordInput) {

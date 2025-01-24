@@ -1,8 +1,8 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { PlaylistJSON } from '../dto/playlist-json.input';
+import { ConvertedPlaylist, PlaylistJSON } from '../dto/playlists.dto';
 import { YouTubeConfig, YouTubeConfigService } from './youtubeConfig';
 import { YouTubeApiClient } from './youtube-api.client';
-import { ScraperService } from '../common/scraper.service';
+import { ScraperService } from '../scraper/scraper.service';
 import { GoogleAuthService } from '../../auth/service/google-auth.service';
 import { YouTubeAuthError } from '../errors/youtube.errors';
 
@@ -48,7 +48,7 @@ export class YouTubeService {
     userId: string | null,
     accessToken: string,
     playlistJSON: PlaylistJSON[],
-  ): Promise<boolean> {
+  ): Promise<ConvertedPlaylist> {
     try {
       const playlistId = await this.executeWithAuth(
         userId,
@@ -56,7 +56,7 @@ export class YouTubeService {
         async (oauth2Client) => {
           return this.youtubeApiClient.createPlaylist(
             oauth2Client,
-            'Converted Playlist',
+            playlistJSON[0].title,
           );
         },
       );
@@ -67,7 +67,13 @@ export class YouTubeService {
         playlistJSON,
         accessToken,
       );
-      return true;
+      return {
+        success: true,
+        message: 'Playlist converted successfully',
+        playlistId: playlistId,
+        playlistName: playlistJSON[0].title,
+        playlistUrl: `https://www.youtube.com/playlist?list=${playlistId}`,
+      };
     } catch (error) {
       if (error instanceof YouTubeAuthError) {
         throw error;

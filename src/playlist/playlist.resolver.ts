@@ -9,22 +9,23 @@ import {
 } from '@nestjs/graphql';
 import { PlaylistService } from './playlist.service';
 import { Playlist } from './entities/playlist.entity';
-import { PlaylistJSON } from './dto/playlist-json.input';
-import { SavePlaylistInput } from './dto/save-playlist.input';
+import {
+  ConvertedPlaylist,
+  PlaylistJSON,
+  SavePlaylistInput,
+} from './dto/playlists.dto';
 import {
   CurrentUser,
   CurrentUserType,
 } from 'src/global/decorators/current-user';
-import { ForbiddenException, Req, UseGuards } from '@nestjs/common';
+import { ForbiddenException, UseGuards } from '@nestjs/common';
 import { UserInput } from 'src/user/dto/user.input';
-import { PlaylistsResponse } from './dto/playlists-response';
+import { PlaylistsResponse } from './dto/playlists.dto';
 import { GraphQLResolveInfo } from 'graphql';
-import { UnauthorizedException } from '@nestjs/common';
-import { YouTubeAuthError } from './errors/youtube.errors';
-import { AuthLevel } from 'src/auth/enums/auth-level.enum';
 import { Auth, RequireOAuth } from 'src/global/decorators/auth.decorator';
-import { OAuthGuard } from 'src/auth/guards/oauth-auth.guard';
+import { OAuthGuard } from 'src/auth/guards/oauth.guard';
 import { ApiDomain } from 'src/auth/enums/api-domain.enum';
+import { AuthLevel } from 'src/auth/enums/auth-level.enum';
 
 @Resolver(() => Playlist)
 export class PlaylistResolver {
@@ -107,45 +108,50 @@ export class PlaylistResolver {
   /**
    * @param listJSON
    * @param context
-   * @returns playlistJSON
+   * @returns ConvertedPlaylist
    * @description
    * 1. get accessToken from context - if logged in, get accessToken from cookie
    * 2. convert to spotify playlist - if logged in, it can retry with new accessToken
-   * 3. if success, return true
+   * 3. if success, return ConvertedPlaylist
    */
   @Auth(AuthLevel.OPTIONAL)
   @UseGuards(OAuthGuard)
   @RequireOAuth(ApiDomain.SPOTIFY)
-  @Mutation(() => Boolean)
+  @Mutation(() => ConvertedPlaylist)
   async convertToSpotifyPlaylist(
+    @Context() ctx: any,
     @CurrentUser() user: CurrentUserType,
     @Args('listJSON', { type: () => [PlaylistJSON] })
     listJSON: PlaylistJSON[],
-    @Args('authorizationCode', { type: () => String, nullable: true })
-    authorizationCode: string,
-    @Context() ctx: any,
   ) {
     const accessToken = ctx.accessToken;
-    if (accessToken) {
-    }
     return await this.playlistService.convertToSpotifyPlaylist(
       user.id,
-      authorizationCode,
       accessToken,
       listJSON,
     );
   }
 
+  /**
+   * @param listJSON
+   * @param ctx
+   * @returns ConvertedPlaylist
+   * @description
+   * 1. get accessToken from context - if logged in, get accessToken from cookie
+   * 2. convert to youtube playlist - if logged in, it can retry with new accessToken
+   * 3. if success, return ConvertedPlaylist
+   */
   @Auth(AuthLevel.OPTIONAL)
   @UseGuards(OAuthGuard)
-  @Mutation(() => Boolean)
+  @RequireOAuth(ApiDomain.YOUTUBE)
+  @Mutation(() => ConvertedPlaylist)
   async convertToYoutubePlaylist(
+    @Context() ctx: any,
+    @CurrentUser() user: CurrentUserType,
     @Args('listJSON', { type: () => [PlaylistJSON] })
     listJSON: PlaylistJSON[],
-    @CurrentUser() user: CurrentUserType,
-    @Context() context: any,
   ) {
-    const accessToken = context.req.cookies['youtube_access_token'];
+    const accessToken = ctx.accessToken;
     return await this.playlistService.convertToYoutubePlaylist(
       user.id,
       accessToken,

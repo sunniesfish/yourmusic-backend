@@ -1,6 +1,9 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { SavePlaylistInput } from './dto/save-playlist.input';
-import { PlaylistJSON } from './dto/playlist-json.input';
+import {
+  ConvertedPlaylist,
+  PlaylistJSON,
+  SavePlaylistInput,
+} from './dto/playlists.dto';
 import { DataSource, Repository } from 'typeorm';
 import { Playlist } from './entities/playlist.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -18,28 +21,39 @@ export class PlaylistService {
     private readonly dataSource: DataSource,
   ) {}
 
+  // need to fix - return type
   async convertToSpotifyPlaylist(
     userId: string,
     accessToken: string,
     playlistJSON: PlaylistJSON[],
-  ) {
-    return await this.spotifyService.convertToSpotifyPlaylist(
-      userId,
-      accessToken,
-      playlistJSON,
-    );
+  ): Promise<ConvertedPlaylist> {
+    const convertedPlaylist =
+      await this.spotifyService.convertToSpotifyPlaylist(
+        userId,
+        accessToken,
+        playlistJSON,
+      );
+    return convertedPlaylist;
   }
 
   async convertToYoutubePlaylist(
     userId: string | null,
     accessToken: string,
     playlistJSON: PlaylistJSON[],
-  ) {
-    return await this.youtubeService.convertToYoutubePlaylist(
-      userId,
-      accessToken,
-      playlistJSON,
-    );
+  ): Promise<ConvertedPlaylist> {
+    const convertedPlaylist =
+      await this.youtubeService.convertToYoutubePlaylist(
+        userId,
+        accessToken,
+        playlistJSON,
+      );
+    return {
+      success: true,
+      message: 'Playlist converted successfully',
+      playlistId: convertedPlaylist.playlistId,
+      playlistName: convertedPlaylist.playlistName,
+      playlistUrl: convertedPlaylist.playlistUrl,
+    };
   }
 
   async read(link: string): Promise<PlaylistJSON[]> {

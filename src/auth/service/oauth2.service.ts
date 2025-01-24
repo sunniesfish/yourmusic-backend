@@ -38,4 +38,10 @@ export abstract class OAuth2Service {
     }
     return text;
   }
+
+  /**
+   * 사용자를 로그아웃합니다.
+   * @param userId - 사용자 ID
+   */
+  abstract signOut(userId: string): Promise<void>;
 }

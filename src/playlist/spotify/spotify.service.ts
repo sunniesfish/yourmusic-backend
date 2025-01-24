@@ -1,7 +1,8 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { PlaylistJSON } from '../dto/playlist-json.input';
-import { ScraperService } from '../common/scraper.service';
+import { PlaylistJSON } from '../dto/playlists.dto';
+import { ScraperService } from '../scraper/scraper.service';
 import { SpotifyApiClient } from './spotify-api.client';
+import { ConvertedPlaylist } from '../dto/playlists.dto';
 
 @Injectable()
 export class SpotifyService {
@@ -40,7 +41,7 @@ export class SpotifyService {
     userId: string | null,
     accessToken: string,
     playlistJSON: PlaylistJSON[],
-  ) {
+  ): Promise<ConvertedPlaylist> {
     try {
       const playlist = await this.spotifyApiClient.createPlaylist(
         userId,
@@ -71,7 +72,13 @@ export class SpotifyService {
         validSongUris,
       );
 
-      return playlist;
+      return {
+        success: true,
+        message: 'Playlist converted successfully',
+        playlistId: playlist.playlistId,
+        playlistName: playlist.playlistName,
+        playlistUrl: playlist.playlistUri,
+      };
     } catch (error) {
       throw new Error(`Failed to convert to Spotify playlist: ${error}`);
     }

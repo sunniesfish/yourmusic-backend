@@ -13,8 +13,10 @@ import { GoogleAuthService } from './service/google-auth.service';
 import { YoutubeCredentials } from './entities/youtube-token.entity';
 import { SpotifyAuthService } from './service/spotify-auth.service';
 import { AuthResolver } from './resolvers/auth.resolver';
-import { OAuthGuard } from './guards/oauth-auth.guard';
-
+import { OAuthGuard } from './guards/oauth.guard';
+import { YoutubeAuthResolver } from './resolvers/youtube-auth.resolver';
+import { SpotifyAuthResolver } from './resolvers/spotify-auth.resolver';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
@@ -35,12 +37,20 @@ import { OAuthGuard } from './guards/oauth-auth.guard';
     UserModule,
   ],
   providers: [
-    AuthService,
     AuthResolver,
+    YoutubeAuthResolver,
+    SpotifyAuthResolver,
+    AuthService,
     JwtService,
     GoogleAuthService,
     SpotifyAuthService,
   ],
-  exports: [AuthService, GoogleAuthService, SpotifyAuthService, OAuthGuard],
+  exports: [
+    AuthService,
+    GoogleAuthService,
+    SpotifyAuthService,
+    OAuthGuard,
+    JwtAuthGuard,
+  ],
 })
 export class AuthModule {}

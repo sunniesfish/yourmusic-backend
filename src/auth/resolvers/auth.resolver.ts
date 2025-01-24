@@ -1,15 +1,16 @@
 import { Args, Context, Mutation, Resolver } from '@nestjs/graphql';
-import { AuthService } from './service/auth.service';
+import { AuthService } from '../service/auth.service';
 import { UserService } from 'src/user/service/user.service';
-import { SignInInput } from './dto/sign-in.input';
-import { SignUpInput } from './dto/sign-up.input';
 import { User } from 'src/user/entities/user.entity';
-import { CurrentUser } from '../global/decorators/current-user';
-import { ChangePasswordInput } from './dto/change-password.input';
 import { ForbiddenException } from '@nestjs/common';
-import { IsPublic } from 'src/global/decorators/ispublic';
 import { UserInput } from 'src/user/dto/user.input';
-import { SignInResponse } from './dto/sign-in.response';
+import { SignInResponse } from '../dto/sign-in.response';
+import { AuthLevel } from '../enums/auth-level.enum';
+import { Auth } from 'src/global/decorators/auth.decorator';
+import { SignUpInput } from '../dto/sign-up.input';
+import { SignInInput } from '../dto/sign-in.input';
+import { ChangePasswordInput } from '../dto/change-password.input';
+import { CurrentUser } from 'src/global/decorators/current-user';
 
 @Resolver()
 export class AuthResolver {
@@ -18,7 +19,7 @@ export class AuthResolver {
     private readonly userService: UserService,
   ) {}
 
-  @IsPublic()
+  @Auth(AuthLevel.NONE)
   @Mutation(() => Boolean)
   async signUp(@Args('signUpInput') signUpInput: SignUpInput) {
     const user = await this.userService.create(signUpInput);
@@ -28,7 +29,7 @@ export class AuthResolver {
     return true;
   }
 
-  @IsPublic()
+  @Auth(AuthLevel.NONE)
   @Mutation(() => SignInResponse)
   async signIn(
     @Args('signInInput') signInInput: SignInInput,
@@ -44,6 +45,7 @@ export class AuthResolver {
     return { user: result.savedUser, accessToken: result.accessToken };
   }
 
+  @Auth(AuthLevel.REQUIRED)
   @Mutation(() => Boolean)
   async signOut(@CurrentUser() user: UserInput) {
     await this.authService.signOut(user.id);
@@ -51,23 +53,22 @@ export class AuthResolver {
   }
 
   //if id is already exist, return true, else return false
-  @IsPublic()
+  @Auth(AuthLevel.NONE)
   @Mutation(() => Boolean)
   async checkId(@Args('id') id: string) {
     return await this.userService.checkId(id);
   }
 
+  @Auth(AuthLevel.REQUIRED)
   @Mutation(() => Boolean)
   async checkPassword(
     @CurrentUser() user: UserInput,
-    @Args('input') input: ChangePasswordInput,
+    @Args('password') password: string,
   ) {
-    if (user.id !== input.id) {
-      throw new ForbiddenException();
-    }
-    return await this.authService.checkPassword(user.id, input.password);
+    return await this.authService.checkPassword(user.id, password);
   }
 
+  @Auth(AuthLevel.REQUIRED)
   @Mutation(() => User)
   async changePassword(
     @CurrentUser() user: UserInput,
