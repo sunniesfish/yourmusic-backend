@@ -17,13 +17,14 @@ import { OAuthGuard } from './guards/oauth.guard';
 import { YoutubeAuthResolver } from './resolvers/youtube-auth.resolver';
 import { SpotifyAuthResolver } from './resolvers/spotify-auth.resolver';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { JwtStrategy } from './strategy/jwt.strategy';
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.get('JWT_ACCESS_SECRET'),
+        secret: configService.get<string>('JWT_ACCESS_SECRET'),
         signOptions: { expiresIn: '30m' },
       }),
       inject: [ConfigService],
@@ -44,6 +45,9 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
     JwtService,
     GoogleAuthService,
     SpotifyAuthService,
+    JwtAuthGuard,
+    OAuthGuard,
+    JwtStrategy,
   ],
   exports: [
     AuthService,

@@ -12,19 +12,18 @@ import {
 @Entity()
 export class RefreshToken {
   @Field(() => ID)
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Field(() => String)
   @Column({
     type: 'varchar',
-    nullable: false,
-    unique: true,
+    nullable: true,
+    name: 'refreshToken',
   })
   refreshToken: string;
 
-  @Field(() => User)
-  @OneToOne(() => User, (user) => user.id, { eager: true })
+  @OneToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
 }

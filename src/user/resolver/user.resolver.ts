@@ -4,14 +4,17 @@ import { User } from '../entities/user.entity';
 import { UpdateUserInput } from '../dto/update-user.input';
 import { FieldNode, GraphQLResolveInfo } from 'graphql';
 import { EXCLUDED_USER_FIELDS } from '../constants/field-restrictions';
-import { ForbiddenException } from '@nestjs/common';
+import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { CurrentUser } from 'src/global/decorators/current-user';
 import { UserInput } from '../dto/user.input';
+import { Auth } from 'src/global/decorators/auth.decorator';
+import { AuthLevel } from 'src/auth/enums/auth-level.enum';
 
 @Resolver(() => User)
 export class UserResolver {
   constructor(private readonly userService: UserService) {}
 
+  @Auth(AuthLevel.REQUIRED)
   @Query(() => User)
   async user(
     @Info() info: GraphQLResolveInfo,
@@ -36,10 +39,16 @@ export class UserResolver {
         {},
       );
 
-    return await this.userService.findOne(
+    const foundUser = await this.userService.findOne(
       user.id,
       Object.keys(requestedFields) as Array<keyof User>,
     );
+
+    if (!foundUser) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return foundUser;
   }
 
   @Mutation(() => Boolean)

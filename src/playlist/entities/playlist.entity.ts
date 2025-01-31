@@ -7,7 +7,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { PlaylistJSON } from '../dto/playlist-json.input';
+import { PlaylistJSON } from '../dto/playlists.dto';
 
 @ObjectType('Playlist')
 @Entity()
@@ -32,8 +32,6 @@ export class Playlist {
   @CreateDateColumn({ type: 'datetime', nullable: false })
   createdAt: Date;
 
-  //()=>User 타입의 엔티티를 참조하는 필드, (user) => user.id 는 User 엔티티의 id 필드를 참조하는 것을 의미
-  @Field(() => User)
   @ManyToOne(() => User, (user) => user.id, { onDelete: 'CASCADE' })
   user: User;
 }

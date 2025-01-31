@@ -7,6 +7,14 @@ input ChangePasswordInput {
   password: String!
 }
 
+type ConvertedPlaylist {
+  message: String!
+  playlistId: String
+  playlistName: String
+  playlistUrl: String
+  success: Boolean!
+}
+
 """
 A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
 """
@@ -22,8 +30,9 @@ input MutateStatisticInput {
 type Mutation {
   changePassword(input: ChangePasswordInput!): User!
   checkId(id: String!): Boolean!
-  checkPassword(input: ChangePasswordInput!): Boolean!
-  convertToYoutubePlaylist(listJSON: [PlaylistJSONInput!]!): Boolean!
+  checkPassword(password: String!): Boolean!
+  convertToSpotifyPlaylist(listJSON: [PlaylistJSONInput!]!): ConvertedPlaylist!
+  convertToYoutubePlaylist(listJSON: [PlaylistJSONInput!]!): ConvertedPlaylist!
   readPlaylist(link: String!): [PlaylistJSON!]!
   removePlaylist(id: Int!): Playlist!
   removeStatistic(userId: ID!): Statistic!
@@ -41,7 +50,6 @@ type Playlist {
   id: ID!
   listJson: [PlaylistJSON!]
   name: String!
-  user: User!
 }
 
 type PlaylistJSON {
@@ -97,7 +105,6 @@ type Statistic {
   artistRankJson: StatisticRank!
   titleRankJson: StatisticRank!
   updatedAt: DateTime!
-  user: User!
   userId: ID!
 }
 

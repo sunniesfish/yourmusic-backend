@@ -1,8 +1,8 @@
 import { ObjectType, Field, ID } from '@nestjs/graphql';
 import { Entity, Column, PrimaryColumn } from 'typeorm';
 
-@ObjectType() // GraphQL을 위한 데코레이터
-@Entity() // TypeORM을 위한 데코레이터
+@ObjectType()
+@Entity()
 export class User {
   @Field(() => ID)
   @PrimaryColumn({ unique: true, type: 'varchar', nullable: false })
@@ -16,7 +16,6 @@ export class User {
   @Column({ type: 'varchar', nullable: true })
   profileImg?: string;
 
-  // GraphQL에서 노출하지 않을 필드
   @Column({ type: 'varchar', nullable: false })
   password: string;
 }

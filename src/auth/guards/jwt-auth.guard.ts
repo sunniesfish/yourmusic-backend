@@ -7,11 +7,17 @@ import {
 } from '@nestjs/common';
 import { AuthLevel } from '../enums/auth-level.enum';
 import { AUTH_LEVEL_KEY } from 'src/global/decorators/auth.decorator';
+import { GqlExecutionContext } from '@nestjs/graphql';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
   constructor(private reflector: Reflector) {
     super();
+  }
+
+  getRequest(context: ExecutionContext) {
+    const ctx = GqlExecutionContext.create(context);
+    return ctx.getContext().req;
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {

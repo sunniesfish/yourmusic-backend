@@ -11,9 +11,10 @@ import { RefreshToken } from '../entities/refresh-token.entity';
 import { SignInInput } from '../dto/sign-in.input';
 import { User } from '../../user/entities/user.entity';
 import { ChangePasswordInput } from '../dto/change-password.input';
-import { JwtService, JwtSignOptions } from '@nestjs/jwt';
+import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { SignUpInput } from '../dto/sign-up.input';
+import { UserService } from '../../user/service/user.service';
 
 @Injectable()
 export class AuthService {
@@ -25,42 +26,58 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
     private readonly dataSource: DataSource,
+    private readonly userService: UserService,
   ) {}
+
+  generateRefreshToken(payload: any): string {
+    return this.jwtService.sign(payload, {
+      secret: this.configService.get('JWT_REFRESH_SECRET'),
+      expiresIn: '7d',
+    });
+  }
+
   async signIn(signInInput: SignInInput) {
     const user = await this.validateUser(signInInput.id, signInInput.password);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
+
     const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+
     try {
+      await queryRunner.connect();
+      await queryRunner.startTransaction();
+
       const payload = { sub: user.id, username: user.name };
       const refreshToken = this.generateRefreshToken(payload);
       const refreshTokenRepository = queryRunner.manager.withRepository(
         this.refreshTokenRepository,
       );
-      const userRepository = queryRunner.manager.withRepository(
-        this.userRepository,
-      );
-      const savedUser = await userRepository.findOne({
-        where: { id: user.id },
-      });
+
+      await refreshTokenRepository.delete({ user: { id: user.id } });
       await refreshTokenRepository.save({
-        user: savedUser,
-        token: refreshToken,
+        user: { id: user.id },
+        refreshToken: refreshToken,
       });
+
       await queryRunner.commitTransaction();
+
       return {
-        savedUser,
-        accessToken: this.jwtService.sign(payload),
+        user,
+        accessToken: this.jwtService.sign(payload, {
+          secret: this.configService.get('JWT_ACCESS_SECRET'),
+        }),
         refreshToken,
       };
     } catch (error) {
-      await queryRunner.rollbackTransaction();
+      if (queryRunner.isTransactionActive) {
+        await queryRunner.rollbackTransaction();
+      }
       throw error;
     } finally {
-      await queryRunner.release();
+      if (!queryRunner.isReleased) {
+        await queryRunner.release();
+      }
     }
   }
 
@@ -155,19 +172,14 @@ export class AuthService {
     return true;
   }
 
-  async validateUser(
-    userId: string,
-    password: string,
-  ): Promise<Partial<User> | null> {
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
-    });
-    if (user && (await bcrypt.compare(password, user.password))) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { password, ...result } = user;
-      return result;
+  async validateUser(id: string, password: string): Promise<any> {
+    const isValid = await this.userService.validateUser(id, password);
+    if (!isValid) {
+      throw new UnauthorizedException('Invalid credentials');
     }
-    return null;
+    const user = await this.userService.findOne(id, ['id', 'name']);
+
+    return user;
   }
 
   validateToken(token: string, isAccessToken: boolean = true): Promise<any> {
@@ -176,12 +188,5 @@ export class AuthService {
         ? this.configService.get('JWT_ACCESS_SECRET')
         : this.configService.get('JWT_REFRESH_SECRET'),
     });
-  }
-
-  generateRefreshToken(payload: any): string {
-    return this.jwtService.sign(payload, {
-      secret: this.configService.get('JWT_REFRESH_SECRET'),
-      expiresIn: '7d',
-    } as JwtSignOptions);
   }
 }

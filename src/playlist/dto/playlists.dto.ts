@@ -49,6 +49,7 @@ export class PlaylistJSON {
   thumbnail?: string;
 }
 
+@ObjectType('ConvertedPlaylist')
 export class ConvertedPlaylist {
   @Field(() => Boolean)
   success: boolean;

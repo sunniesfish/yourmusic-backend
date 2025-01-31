@@ -7,10 +7,15 @@ import databaseConfig from './config/database.config';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PlaylistModule } from './playlist/playlist.module';
-import { AuthResolver } from './auth/auth.resolver';
 import { StatisticModule } from './statistic/statistic.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
+import { User } from './user/entities/user.entity';
+import { RefreshToken } from './auth/entities/refresh-token.entity';
+import { SpotifyToken } from './auth/entities/spotify-token.entity';
+import { YoutubeCredentials } from './auth/entities/youtube-token.entity';
+import { Statistic } from './statistic/entities/statistic.entity';
+import { Playlist } from './playlist/entities/playlist.entity';
 
 @Module({
   imports: [
@@ -20,8 +25,18 @@ import { JwtModule } from '@nestjs/jwt';
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) =>
-        configService.get('database'),
+      useFactory: (configService: ConfigService) => ({
+        ...configService.get('database'),
+        entities: [
+          User,
+          RefreshToken,
+          SpotifyToken,
+          YoutubeCredentials,
+          Playlist,
+          Statistic,
+        ],
+        autoLoadEntities: true,
+      }),
       inject: [ConfigService],
     }),
     GraphQLModule.forRoot<ApolloDriverConfig>({
@@ -29,6 +44,7 @@ import { JwtModule } from '@nestjs/jwt';
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
       sortSchema: true,
       playground: true,
+      context: ({ req, res }) => ({ req, res }),
     }),
     JwtModule,
     UserModule,
@@ -37,6 +53,6 @@ import { JwtModule } from '@nestjs/jwt';
     AuthModule,
   ],
   controllers: [],
-  providers: [AuthResolver],
+  providers: [],
 })
 export class AppModule {}

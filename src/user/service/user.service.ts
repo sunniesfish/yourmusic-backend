@@ -4,9 +4,12 @@ import { DataSource, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UpdateUserInput } from '../dto/update-user.input';
 import { SignUpInput } from 'src/auth/dto/sign-up.input';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UserService {
+  private readonly SALT_ROUNDS = 10;
+
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
@@ -46,7 +49,11 @@ export class UserService {
         throw new Error('User with same ID already exists');
       }
 
-      const createdUser = await queryRunner.manager.save(User, user);
+      const hashedPassword = await bcrypt.hash(user.password, this.SALT_ROUNDS);
+      const createdUser = await queryRunner.manager.save(User, {
+        ...user,
+        password: hashedPassword,
+      });
       await queryRunner.commitTransaction();
       return createdUser;
     } catch (error) {
@@ -60,5 +67,20 @@ export class UserService {
   async checkId(id: string) {
     const user = await this.userRepository.findOne({ where: { id } });
     return user ? true : false;
+  }
+
+  async validateUser(id: string, password: string): Promise<boolean> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) return false;
+    return bcrypt.compare(password, user.password);
+  }
+
+  async updatePassword(userId: string, newPassword: string): Promise<boolean> {
+    const hashedPassword = await bcrypt.hash(newPassword, this.SALT_ROUNDS);
+    const result = await this.userRepository.update(
+      { id: userId },
+      { password: hashedPassword },
+    );
+    return result.affected > 0;
   }
 }

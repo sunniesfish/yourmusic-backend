@@ -11,6 +11,7 @@ import { SignUpInput } from '../dto/sign-up.input';
 import { SignInInput } from '../dto/sign-in.input';
 import { ChangePasswordInput } from '../dto/change-password.input';
 import { CurrentUser } from 'src/global/decorators/current-user';
+import { Response } from 'express';
 
 @Resolver()
 export class AuthResolver {
@@ -33,16 +34,24 @@ export class AuthResolver {
   @Mutation(() => SignInResponse)
   async signIn(
     @Args('signInInput') signInInput: SignInInput,
-    @Context() context: any,
+    @Context() context: { res: Response },
   ) {
     const result = await this.authService.signIn(signInInput);
-    context.res.cookie('refreshToken', result.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none',
-      maxAge: 60 * 60 * 24 * 7,
-    });
-    return { user: result.savedUser, accessToken: result.accessToken };
+
+    if (context.res) {
+      context.res.cookie('refreshToken', result.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        maxAge: 60 * 60 * 24 * 7 * 1000, // 7 days
+        path: '/',
+      });
+    }
+
+    return {
+      user: result.user,
+      accessToken: result.accessToken,
+    };
   }
 
   @Auth(AuthLevel.REQUIRED)

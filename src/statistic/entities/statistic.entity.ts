@@ -33,7 +33,6 @@ export class Statistic {
   @UpdateDateColumn({ type: 'datetime', nullable: false })
   updatedAt: Date;
 
-  @Field(() => User)
   @OneToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
   user: User;
