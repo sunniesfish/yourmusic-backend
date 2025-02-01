@@ -62,18 +62,22 @@ export class PlaylistService {
     }
 
     const isSpotify = this.spotifyService.isSpotifyUrl(link);
-    const isYoutube = this.youtubeService.isYoutubeUrl(link);
-
-    if (!isSpotify && !isYoutube) {
-      throw new Error('Please provide a valid Spotify or YouTube URL');
-    }
 
     if (isSpotify) {
+      console.log('isSpotify', isSpotify);
       return await this.spotifyService.readSpotifyPlaylist(link);
     }
 
+    const isYoutube = this.youtubeService.isYoutubeUrl(link);
+
     if (isYoutube) {
+      console.log('isYoutube', isYoutube);
       return await this.youtubeService.readYoutubePlaylist(link);
+    }
+
+    if (!isSpotify && !isYoutube) {
+      console.log('not spotify or youtube');
+      throw new Error('Please provide a valid Spotify or YouTube URL');
     }
   }
 

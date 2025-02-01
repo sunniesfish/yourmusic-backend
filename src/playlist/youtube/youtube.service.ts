@@ -138,17 +138,29 @@ export class YouTubeService {
     return link.includes('youtube.com') || link.includes('youtu.be');
   }
 
-  readYoutubePlaylist(link: string): Promise<PlaylistJSON[]> {
-    return this.scraperService.scrape(link, 'div.contentSpacing', async () => {
-      const trackRows = document.querySelectorAll(
-        '[data-testid="tracklist-row"]',
-      );
-      return Array.from(trackRows).map((row) => {
-        const thumbnail = row.querySelector('img')?.getAttribute('src') || '';
-        const title = row.querySelector('a')?.getAttribute('title') || '';
-        const artist = row.querySelector('a')?.getAttribute('title') || '';
-        return { title, artist, thumbnail };
-      });
-    });
+  async readYoutubePlaylist(link: string): Promise<PlaylistJSON[]> {
+    console.log('//////////readYoutubePlaylist');
+    return this.scraperService.scrape(
+      link,
+      'ytd-playlist-video-renderer',
+      async () => {
+        const trackRows = document.querySelectorAll(
+          'ytd-playlist-video-renderer',
+        );
+        return Array.from(trackRows).map((row) => {
+          const titleElement = row.querySelector('#video-title');
+          const title = titleElement?.textContent?.trim() || '';
+
+          const channelElement = row.querySelector(
+            'ytd-channel-name yt-formatted-string a',
+          );
+          const artist = channelElement?.textContent?.trim() || '';
+          return {
+            title: title ? title : 'no title',
+            artist: artist ? artist : 'no artist',
+          };
+        });
+      },
+    );
   }
 }

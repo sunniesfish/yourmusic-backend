@@ -17,25 +17,30 @@ export class SpotifyService {
     return url.includes('spotify.com');
   };
 
-  readSpotifyPlaylist = async (link: string): Promise<PlaylistJSON[]> => {
-    return this.scraperService.scrape(link, 'div.contentSpacing', async () => {
-      const trackRows = document.querySelectorAll(
-        '[data-testid="tracklist-row"]',
-      );
-      return Array.from(trackRows).map((row) => {
-        const thumbnail = row.querySelector('img')?.getAttribute('src') || '';
-        const title =
-          row.querySelector('.encore-text-body-medium[dir="auto"]')
-            ?.textContent || '';
-        const artist =
-          row.querySelector('.encore-text-body-small a[href*="/artist/"]')
-            ?.textContent || '';
-        const album =
-          row.querySelector('a[href*="/album/"]')?.textContent || '';
-        return { title, artist, album, thumbnail };
-      });
-    });
-  };
+  async readSpotifyPlaylist(link: string): Promise<PlaylistJSON[]> {
+    console.log('//////////readSpotifyPlaylist');
+    return this.scraperService.scrape(
+      link,
+      '[data-testid="tracklist-row"]',
+      async () => {
+        const trackRows = document.querySelectorAll(
+          '[data-testid="tracklist-row"]',
+        );
+        return Array.from(trackRows).map((row) => {
+          const thumbnail = row.querySelector('img')?.getAttribute('src') || '';
+          const title =
+            row.querySelector('.encore-text-body-medium[dir="auto"]')
+              ?.textContent || '';
+          const artist =
+            row.querySelector('.encore-text-body-small a[href*="/artist/"]')
+              ?.textContent || '';
+          const album =
+            row.querySelector('a[href*="/album/"]')?.textContent || '';
+          return { title, artist, album, thumbnail };
+        });
+      },
+    );
+  }
 
   async convertToSpotifyPlaylist(
     userId: string | null,

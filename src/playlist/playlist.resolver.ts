@@ -102,6 +102,7 @@ export class PlaylistResolver {
   @Auth(AuthLevel.NONE)
   @Mutation(() => [PlaylistJSON])
   async readPlaylist(@Args('link', { type: () => String }) link: string) {
+    console.log('link', link);
     return await this.playlistService.read(link);
   }
 

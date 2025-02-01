@@ -1,6 +1,17 @@
+console.log(
+  '////////////////////////////////////////////scraper worker////////////////////////////////////////////',
+);
+
 import { parentPort } from 'worker_threads';
 import puppeteer, { Browser } from 'puppeteer';
-import { scraperConfigService } from './scraper.config';
+import { scraperConfigService } from '../playlist/scraper/scraper.config';
+
+// Add debug logging
+const isDebug = process.env.NODE_ENV !== 'production';
+if (isDebug) {
+  console.log('Worker started at:', new Date().toISOString());
+  console.log('Worker file location:', __filename);
+}
 
 /**
  * BrowserPool Class
@@ -91,16 +102,15 @@ const browserPool = new BrowserPool();
  * @returns Promise<{ data: any; error?: string }>
  */
 async function scrape({ link, selector, extractDataFn }) {
+  console.log('start scraping:', { link, selector });
   let browser: Browser | null = null;
   let page = null;
 
   try {
-    // Get available browser from browser pool
     browser = await browserPool.getBrowser();
 
     // Create a new page
     page = await browser.newPage();
-
     // Set page options - block unnecessary resources
     await page.setRequestInterception(true);
     page.on('request', (request) => {
@@ -110,17 +120,19 @@ async function scrape({ link, selector, extractDataFn }) {
         request.continue();
       }
     });
-
     // Load page and extract data
     await page.goto(link, {
       waitUntil: 'networkidle0',
     });
     await page.waitForSelector(selector);
 
-    // Execute the extracted function and collect data
-    const data = await page.evaluate(extractDataFn);
+    const fnToExecute = new Function(`return ${extractDataFn}`)();
+
+    const data = await page.evaluate(fnToExecute);
+
     return { data };
   } catch (error) {
+    console.log('scraping error:', error);
     return {
       error: error.message,
       stack: error.stack,
@@ -141,12 +153,20 @@ async function scrape({ link, selector, extractDataFn }) {
  */
 parentPort?.on('message', async (job) => {
   try {
+    console.log('Worker received job:', job);
     const result = await scrape(job);
-    parentPort?.postMessage(result);
-  } catch (error) {
+    console.log('Worker completed job:', result);
     parentPort?.postMessage({
-      error: error.message,
-      stack: error.stack,
+      success: true,
+      data: result.data,
+    });
+  } catch (error) {
+    console.error('Worker error:', error);
+    parentPort?.postMessage({
+      success: false,
+      error: {
+        message: error.message,
+      },
     });
   }
 });

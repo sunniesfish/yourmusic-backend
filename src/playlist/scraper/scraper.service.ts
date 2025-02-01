@@ -1,5 +1,4 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { join } from 'path';
 import { Worker } from 'worker_threads';
 import { PlaylistJSON } from '../dto/playlists.dto';
 import { ScraperResponse, ScraperJob } from './scraper.types';
@@ -23,8 +22,10 @@ export class ScraperService implements OnModuleInit, OnModuleDestroy {
    * Initialize worker pool with configured number of workers
    */
   private async initializeWorkerPool(): Promise<void> {
+    console.log('//////////initializeWorkerPool');
     for (let i = 0; i < this.config.maxWorkers; i++) {
       const worker = this.createWorker();
+      console.log('worker created', worker);
       this.workerPool.push(worker);
     }
   }
@@ -33,11 +34,19 @@ export class ScraperService implements OnModuleInit, OnModuleDestroy {
    * Create a new worker instance
    */
   private createWorker(): Worker {
-    const worker = new Worker(join(__dirname, 'scraper.worker.js'));
+    console.log('create worker');
+    const worker = new Worker(this.config.workerPath, {
+      execArgv: this.config.execArgv,
+    });
 
-    // Handle unexpected worker termination
+    worker.on('error', (error) => {
+      console.error('Worker error:', error);
+      this.handleWorkerFailure(worker);
+    });
+
     worker.on('exit', (code) => {
       if (code !== 0) {
+        console.error(`Worker stopped with exit code ${code}`);
         this.handleWorkerFailure(worker);
       }
     });
@@ -49,11 +58,13 @@ export class ScraperService implements OnModuleInit, OnModuleDestroy {
    * Get an available worker from the pool
    */
   private async getAvailableWorker(): Promise<Worker> {
+    console.log('getAvailableWorker');
     const availableWorker = this.workerPool.find(
       (worker) => !this.busyWorkers.has(worker),
     );
 
     if (availableWorker) {
+      console.log('availableWorker');
       this.busyWorkers.add(availableWorker);
       return availableWorker;
     }
@@ -61,6 +72,7 @@ export class ScraperService implements OnModuleInit, OnModuleDestroy {
     // Wait for an available worker
     return new Promise((resolve) => {
       const interval = setInterval(() => {
+        console.log('interval');
         const worker = this.workerPool.find((w) => !this.busyWorkers.has(w));
         if (worker) {
           clearInterval(interval);
@@ -100,7 +112,7 @@ export class ScraperService implements OnModuleInit, OnModuleDestroy {
       const timeout = setTimeout(() => {
         reject(new Error('Scraping operation timed out'));
         this.releaseWorker(worker);
-      }, 30000); // 30 seconds timeout
+      }, this.config.workerTimeout);
 
       worker.once('message', (response: ScraperResponse) => {
         clearTimeout(timeout);
@@ -144,6 +156,8 @@ export class ScraperService implements OnModuleInit, OnModuleDestroy {
     selector: string,
     extractDataFn: () => Promise<PlaylistJSON[]>,
   ): Promise<PlaylistJSON[]> {
+    console.log('scrape', link, selector, extractDataFn);
+
     const worker = await this.getAvailableWorker();
 
     try {
