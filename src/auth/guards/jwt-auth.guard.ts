@@ -27,7 +27,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       this.reflector.get<AuthLevel>(AUTH_LEVEL_KEY, context.getHandler()) ||
       AuthLevel.REQUIRED;
 
-    // if authLevel is NONE, skip authentication
+    // NONE인 경우 인증 스킵
     if (authLevel === AuthLevel.NONE) {
       return true;
     }
@@ -36,12 +36,10 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       const canActivate = await super.canActivate(context);
       return canActivate as boolean;
     } catch (error) {
-      // if authLevel is OPTIONAL, return true
+      // OPTIONAL인 경우 에러 무시
       if (authLevel === AuthLevel.OPTIONAL) {
         return true;
       }
-
-      // if authLevel is REQUIRED, throw error
       throw error;
     }
   }

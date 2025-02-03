@@ -17,10 +17,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: {
     sub: string;
     username: string;
-  }): Promise<{ userId: string; username: string }> {
+  }): Promise<{ id: string; name: string }> {
     if (!payload.sub || !payload.username) {
       throw new UnauthorizedException('Invalid token payload');
     }
-    return { userId: payload.sub, username: payload.username };
+    return { id: payload.sub, name: payload.username };
   }
 }

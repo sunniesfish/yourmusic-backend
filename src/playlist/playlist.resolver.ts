@@ -14,10 +14,7 @@ import {
   PlaylistJSON,
   SavePlaylistInput,
 } from './dto/playlists.dto';
-import {
-  CurrentUser,
-  CurrentUserType,
-} from 'src/global/decorators/current-user';
+import { CurrentUser } from 'src/global/decorators/current-user';
 import { ForbiddenException, UseGuards } from '@nestjs/common';
 import { UserInput } from 'src/user/dto/user.input';
 import { PlaylistsResponse } from './dto/playlists.dto';
@@ -36,7 +33,7 @@ export class PlaylistResolver {
     @CurrentUser() user: UserInput,
     @Args('savePlaylistInput') savePlaylistInput: SavePlaylistInput,
   ) {
-    if (user.id === undefined) {
+    if (user === undefined || user.id === undefined) {
       throw new ForbiddenException();
     }
     await this.playlistService.create(savePlaylistInput, user.id);
@@ -93,7 +90,7 @@ export class PlaylistResolver {
     @Args('id', { type: () => Int }) id: number,
     @CurrentUser() user: UserInput,
   ) {
-    if (user.id === undefined) {
+    if (user === undefined || user.id === undefined) {
       throw new ForbiddenException();
     }
     return await this.playlistService.remove(id, user.id);
@@ -121,7 +118,7 @@ export class PlaylistResolver {
   @Mutation(() => ConvertedPlaylist)
   async convertToSpotifyPlaylist(
     @Context() ctx: any,
-    @CurrentUser() user: CurrentUserType,
+    @CurrentUser() user: UserInput,
     @Args('listJSON', { type: () => [PlaylistJSON] })
     listJSON: PlaylistJSON[],
   ) {
@@ -148,7 +145,7 @@ export class PlaylistResolver {
   @Mutation(() => ConvertedPlaylist)
   async convertToYoutubePlaylist(
     @Context() ctx: any,
-    @CurrentUser() user: CurrentUserType,
+    @CurrentUser() user: UserInput,
     @Args('listJSON', { type: () => [PlaylistJSON] })
     listJSON: PlaylistJSON[],
   ) {

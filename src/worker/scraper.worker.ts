@@ -120,15 +120,26 @@ async function scrape({ link, selector, extractDataFn }) {
         request.continue();
       }
     });
+    // Log request and response
+    page.on('request', (request) => {
+      console.log('Request:', request.url());
+    });
+    page.on('response', (response) => {
+      console.log('Response:', response.url(), response.status());
+    });
     // Load page and extract data
     await page.goto(link, {
-      waitUntil: 'networkidle0',
+      waitUntil: ['networkidle0', 'domcontentloaded', 'load'],
     });
     await page.waitForSelector(selector);
 
     const fnToExecute = new Function(`return ${extractDataFn}`)();
 
     const data = await page.evaluate(fnToExecute);
+
+    // Log performance metrics
+    const metrics = await page.metrics();
+    console.log('Performance Metrics:', metrics);
 
     return { data };
   } catch (error) {
