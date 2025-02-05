@@ -89,6 +89,7 @@ export class PlaylistService {
       const playlist = this.playlistRepository.create({
         user: { id: userId },
         name: savePlaylistInput.name,
+        thumbnail: savePlaylistInput.listJson[0].thumbnail,
         listJson: savePlaylistInput.listJson,
       });
       await queryRunner.manager.save(playlist);
@@ -107,24 +108,32 @@ export class PlaylistService {
     page: number,
     limit: number,
     orderBy: string,
-    fields: Array<keyof Playlist>,
+    fields: string[],
   ) {
     const skip = (page - 1) * limit;
     const query = this.playlistRepository.createQueryBuilder('playlist');
 
-    const fieldMappings: Record<keyof Playlist, string> = {
-      id: 'playlist.id',
-      name: 'playlist.name',
-      createdAt: 'playlist.createdAt',
-      listJson: 'playlist.listJson',
-      user: 'user.id',
-    };
-
-    fields.forEach((field) => {
-      query.addSelect(fieldMappings[field]);
-    });
+    // 요청된 필드만 선택
+    if (fields.length > 0) {
+      fields.forEach((field) => {
+        if (field === 'id') query.addSelect('playlist.id');
+        if (field === 'name') query.addSelect('playlist.name');
+        if (field === 'thumbnail') query.addSelect('playlist.thumbnail');
+        if (field === 'createdAt') query.addSelect('playlist.createdAt');
+        if (field === 'listJson') query.addSelect('playlist.listJson');
+      });
+    } else {
+      // 기본 필드 선택
+      query.select([
+        'playlist.id',
+        'playlist.name',
+        'playlist.thumbnail',
+        'playlist.createdAt',
+      ]);
+    }
 
     query.where('playlist.userId = :userId', { userId });
+
     if (orderBy === 'createdAt') {
       query.orderBy('playlist.createdAt', 'DESC');
     }
@@ -136,11 +145,10 @@ export class PlaylistService {
       query.skip(skip).take(limit).getMany(),
       query.getCount(),
     ]);
-    const totalPages = Math.ceil(total / limit);
 
     return {
       playlists,
-      totalPages,
+      totalPages: Math.ceil(total / limit),
     };
   }
 

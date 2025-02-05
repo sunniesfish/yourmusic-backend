@@ -40,9 +40,7 @@ export class PlaylistResolver {
     return true;
   }
 
-  @Query(() => PlaylistsResponse, {
-    name: 'playlistsPage',
-  })
+  @Query(() => PlaylistsResponse, { name: 'playlistsPage' })
   async findAll(
     @CurrentUser() user: UserInput,
     @Args('page', { type: () => Int }) page: number,
@@ -50,27 +48,33 @@ export class PlaylistResolver {
     @Args('orderBy', { type: () => String }) orderBy: string,
     @Info() info: GraphQLResolveInfo,
   ) {
+    console.log('findAll//////////');
     if (user.id === undefined) {
+      console.log('user.id is undefined');
       throw new ForbiddenException();
     }
 
     const selections = info.fieldNodes[0].selectionSet?.selections || [];
-    const requestedFields = selections.reduce(
-      (acc, field) => {
-        if ('name' in field) {
-          return { ...acc, [field.name.value]: true };
-        }
-        return acc;
-      },
-      {} as Record<string, boolean>,
-    );
+    const playlistFields = new Set<string>();
+
+    selections.forEach((selection) => {
+      if (selection.kind === 'Field' && selection.name.value === 'playlists') {
+        selection.selectionSet?.selections.forEach((field) => {
+          if (field.kind === 'Field') {
+            playlistFields.add(field.name.value);
+          }
+        });
+      }
+    });
+
+    console.log('playlistFields', playlistFields);
 
     return await this.playlistService.findAll(
       user.id,
       page,
       limit,
       orderBy,
-      Object.keys(requestedFields) as Array<keyof Playlist>,
+      Array.from(playlistFields),
     );
   }
 
@@ -79,6 +83,8 @@ export class PlaylistResolver {
     @Args('id', { type: () => Int }) id: number,
     @CurrentUser() user: UserInput,
   ) {
+    console.log('user', user);
+    console.log('id', id);
     if (user.id === undefined) {
       throw new ForbiddenException();
     }

@@ -50,6 +50,7 @@ type Playlist {
   id: ID!
   listJson: [PlaylistJSON!]
   name: String!
+  thumbnail: String
 }
 
 type PlaylistJSON {

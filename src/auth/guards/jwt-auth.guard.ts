@@ -26,7 +26,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     const authLevel =
       this.reflector.get<AuthLevel>(AUTH_LEVEL_KEY, context.getHandler()) ||
       AuthLevel.REQUIRED;
-
+    console.log('///////////////authLevel', authLevel);
     // NONE인 경우 인증 스킵
     if (authLevel === AuthLevel.NONE) {
       return true;
@@ -57,25 +57,30 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
     // if authLevel is REQUIRED and user is not found, throw error
     if (authLevel === AuthLevel.REQUIRED && !user) {
+      console.log('requeired but user not found');
       throw new UnauthorizedException('User not found');
     }
 
     // if there is no JWT token, throw error
     if (info?.message === 'No auth token') {
+      console.log('no token');
       throw new UnauthorizedException('There is no JWT token');
     }
 
     // if JWT token is expired, throw error
     if (info?.message === 'jwt expired') {
+      console.log('jwt expired');
       throw new UnauthorizedException('JWT token expired');
     }
 
     // if there is an error or user is not found, throw error
     if (err || !user) {
+      console.log('invalid jwt token');
       throw new UnauthorizedException('Invalid JWT token');
     }
 
     // if there is no error and user is found, return user
+    console.log('return user', user);
     return user;
   }
 }

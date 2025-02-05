@@ -28,6 +28,10 @@ export class Playlist {
   @Column({ type: 'json', nullable: false })
   listJson: PlaylistJSON[];
 
+  @Field({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
+  thumbnail: string;
+
   @Field()
   @CreateDateColumn({ type: 'datetime', nullable: false })
   createdAt: Date;
