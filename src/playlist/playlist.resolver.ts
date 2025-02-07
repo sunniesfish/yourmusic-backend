@@ -48,7 +48,6 @@ export class PlaylistResolver {
     @Args('orderBy', { type: () => String }) orderBy: string,
     @Info() info: GraphQLResolveInfo,
   ) {
-    console.log('findAll//////////');
     if (user.id === undefined) {
       console.log('user.id is undefined');
       throw new ForbiddenException();
@@ -78,20 +77,14 @@ export class PlaylistResolver {
     );
   }
 
+  @Auth(AuthLevel.NONE)
   @Query(() => Playlist, { name: 'playlist' })
-  async findOne(
-    @Args('id', { type: () => Int }) id: number,
-    @CurrentUser() user: UserInput,
-  ) {
-    console.log('user', user);
-    console.log('id', id);
-    if (user.id === undefined) {
-      throw new ForbiddenException();
-    }
-    return await this.playlistService.findOne(id, user.id);
+  async findOne(@Args('id', { type: () => Int }) id: number) {
+    console.log('findOne//////////');
+    return await this.playlistService.findOne(id);
   }
 
-  @Mutation(() => Playlist)
+  @Mutation(() => Boolean)
   async removePlaylist(
     @Args('id', { type: () => Int }) id: number,
     @CurrentUser() user: UserInput,

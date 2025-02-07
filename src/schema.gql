@@ -34,7 +34,7 @@ type Mutation {
   convertToSpotifyPlaylist(listJSON: [PlaylistJSONInput!]!): ConvertedPlaylist!
   convertToYoutubePlaylist(listJSON: [PlaylistJSONInput!]!): ConvertedPlaylist!
   readPlaylist(link: String!): [PlaylistJSON!]!
-  removePlaylist(id: Int!): Playlist!
+  removePlaylist(id: Int!): Boolean!
   removeStatistic(userId: ID!): Statistic!
   savePlaylist(savePlaylistInput: SavePlaylistInput!): Boolean!
   saveStatistic(saveStatisticInput: MutateStatisticInput!): Boolean!

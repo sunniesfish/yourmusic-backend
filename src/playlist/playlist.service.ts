@@ -152,9 +152,9 @@ export class PlaylistService {
     };
   }
 
-  async findOne(id: number, userId: string) {
+  async findOne(id: number) {
     return await this.playlistRepository.findOne({
-      where: { id, user: { id: userId } },
+      where: { id },
     });
   }
 
