@@ -2,10 +2,24 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+"""Enum for the API domain"""
+enum ApiDomain {
+  SPOTIFY
+  YOUTUBE
+}
+
+type AuthRequiredResponse {
+  apiDomain: ApiDomain!
+  authUrl: String!
+  needsAuth: Boolean!
+}
+
 input ChangePasswordInput {
   id: ID!
   password: String!
 }
+
+union ConvertPlaylistResponse = AuthRequiredResponse | ConvertedPlaylist
 
 type ConvertedPlaylist {
   message: String!
@@ -31,8 +45,8 @@ type Mutation {
   changePassword(input: ChangePasswordInput!): User!
   checkId(id: String!): Boolean!
   checkPassword(password: String!): Boolean!
-  convertToSpotifyPlaylist(listJSON: [PlaylistJSONInput!]!): ConvertedPlaylist!
-  convertToYoutubePlaylist(listJSON: [PlaylistJSONInput!]!): ConvertedPlaylist!
+  convertToSpotifyPlaylist(authorizationCode: String, listJSON: [PlaylistJSONInput!]!, state: String): ConvertPlaylistResponse!
+  convertToYoutubePlaylist(authorizationCode: String, listJSON: [PlaylistJSONInput!]!, state: String): ConvertPlaylistResponse!
   readPlaylist(link: String!): [PlaylistJSON!]!
   removePlaylist(id: Int!): Boolean!
   removeStatistic(userId: ID!): Statistic!

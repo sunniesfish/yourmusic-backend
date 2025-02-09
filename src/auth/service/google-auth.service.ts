@@ -6,6 +6,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { googleAuthConfigService } from '../configs/google.auth.config';
 import { OAuth2Service } from './oauth2.service';
 import {
+  OAuth2AuthOptions,
   OAuth2AuthResponse,
   OAuth2TokenResponse,
 } from '../interfaces/auth-status.interface';
@@ -55,12 +56,15 @@ export class GoogleAuthService extends OAuth2Service {
    * create auth url
    * @returns auth url
    */
-  getAuthUrl(): string {
+  getAuthUrl(options?: OAuth2AuthOptions): string {
     const oauth2Client = this.createOAuthClient();
     return oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: ['https://www.googleapis.com/auth/youtube'],
       prompt: 'consent',
+      redirect_uri: googleAuthConfigService.getConfig().redirectUri,
+      client_id: googleAuthConfigService.getConfig().clientId,
+      state: options?.state,
     });
   }
 

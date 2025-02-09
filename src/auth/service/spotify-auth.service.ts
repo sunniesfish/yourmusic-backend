@@ -9,6 +9,7 @@ import {
 } from '../errors/spotify-auth.errors';
 import { OAuth2Service } from './oauth2.service';
 import {
+  OAuth2AuthOptions,
   OAuth2AuthResponse,
   OAuth2TokenResponse,
 } from '../interfaces/auth-status.interface';
@@ -26,13 +27,13 @@ export class SpotifyAuthService extends OAuth2Service {
    * get auth url
    * @returns auth url
    */
-  getAuthUrl(): string {
+  getAuthUrl(options?: OAuth2AuthOptions): string {
     const params = new URLSearchParams({
       response_type: 'code',
       client_id: spotifyAuthConfig.clientId,
       scope: spotifyAuthConfig.scopes.join(' '),
       redirect_uri: spotifyAuthConfig.redirectUri,
-      state: this.generateRandomString(16),
+      state: options?.state,
       show_dialog: 'true',
       access_type: 'offline',
     });

@@ -1,5 +1,12 @@
-import { ObjectType, Field, Int, InputType } from '@nestjs/graphql';
+import {
+  ObjectType,
+  Field,
+  Int,
+  InputType,
+  createUnionType,
+} from '@nestjs/graphql';
 import { Playlist } from '../entities/playlist.entity';
+import { ApiDomain } from 'src/auth/enums/api-domain.enum';
 
 /**
  * @description
@@ -66,3 +73,20 @@ export class ConvertedPlaylist {
   @Field(() => String, { nullable: true })
   playlistUrl?: string;
 }
+
+@ObjectType('AuthRequiredResponse')
+export class AuthRequiredResponse {
+  @Field(() => Boolean)
+  needsAuth: boolean;
+
+  @Field(() => String)
+  authUrl: string;
+
+  @Field(() => ApiDomain)
+  apiDomain: ApiDomain;
+}
+
+export const ConvertPlaylistResponse = createUnionType({
+  name: 'ConvertPlaylistResponse',
+  types: () => [ConvertedPlaylist, AuthRequiredResponse],
+});

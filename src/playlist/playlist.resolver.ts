@@ -13,9 +13,16 @@ import {
   ConvertedPlaylist,
   PlaylistJSON,
   SavePlaylistInput,
+  AuthRequiredResponse,
+  ConvertPlaylistResponse,
 } from './dto/playlists.dto';
 import { CurrentUser } from 'src/global/decorators/current-user';
-import { ForbiddenException, UseGuards } from '@nestjs/common';
+import {
+  ForbiddenException,
+  UseGuards,
+  UnauthorizedException,
+  Inject,
+} from '@nestjs/common';
 import { UserInput } from 'src/user/dto/user.input';
 import { PlaylistsResponse } from './dto/playlists.dto';
 import { GraphQLResolveInfo } from 'graphql';
@@ -23,10 +30,17 @@ import { Auth, RequireOAuth } from 'src/global/decorators/auth.decorator';
 import { OAuthGuard } from 'src/auth/guards/oauth.guard';
 import { ApiDomain } from 'src/auth/enums/api-domain.enum';
 import { AuthLevel } from 'src/auth/enums/auth-level.enum';
+import { GqlContext } from 'src/auth/interfaces/auth-status.interface';
+import { GoogleAuthService } from 'src/auth/service/google-auth.service';
 
 @Resolver(() => Playlist)
 export class PlaylistResolver {
-  constructor(private readonly playlistService: PlaylistService) {}
+  constructor(
+    @Inject()
+    private readonly playlistService: PlaylistService,
+    @Inject()
+    private readonly googleAuthService: GoogleAuthService,
+  ) {}
 
   @Mutation(() => Boolean)
   async savePlaylist(
@@ -114,19 +128,41 @@ export class PlaylistResolver {
   @Auth(AuthLevel.OPTIONAL)
   @UseGuards(OAuthGuard)
   @RequireOAuth(ApiDomain.SPOTIFY)
-  @Mutation(() => ConvertedPlaylist)
+  @Mutation(() => ConvertPlaylistResponse)
   async convertToSpotifyPlaylist(
     @Context() ctx: any,
     @CurrentUser() user: UserInput,
     @Args('listJSON', { type: () => [PlaylistJSON] })
     listJSON: PlaylistJSON[],
+    @Args('authorizationCode', { type: () => String, nullable: true })
+    authorizationCode?: string,
+    @Args('state', { type: () => String, nullable: true })
+    state?: string,
   ) {
-    const accessToken = ctx.accessToken;
-    return await this.playlistService.convertToSpotifyPlaylist(
-      user.id,
-      accessToken,
-      listJSON,
-    );
+    try {
+      const apiAccessToken = ctx.req.api_accessToken;
+
+      if (!apiAccessToken && !authorizationCode) {
+        throw new UnauthorizedException();
+      }
+
+      return await this.playlistService.convertToSpotifyPlaylist(
+        user?.id || null,
+        apiAccessToken,
+        listJSON,
+      );
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        return {
+          needsAuth: true,
+          authUrl: this.googleAuthService.getAuthUrl({
+            state: state,
+          }),
+          apiDomain: ApiDomain.SPOTIFY,
+        };
+      }
+      throw error;
+    }
   }
 
   /**
@@ -141,18 +177,39 @@ export class PlaylistResolver {
   @Auth(AuthLevel.OPTIONAL)
   @UseGuards(OAuthGuard)
   @RequireOAuth(ApiDomain.YOUTUBE)
-  @Mutation(() => ConvertedPlaylist)
+  @Mutation(() => ConvertPlaylistResponse)
   async convertToYoutubePlaylist(
-    @Context() ctx: any,
+    @Context() ctx: GqlContext,
     @CurrentUser() user: UserInput,
-    @Args('listJSON', { type: () => [PlaylistJSON] })
-    listJSON: PlaylistJSON[],
-  ) {
-    const accessToken = ctx.accessToken;
-    return await this.playlistService.convertToYoutubePlaylist(
-      user.id,
-      accessToken,
-      listJSON,
-    );
+    @Args('listJSON', { type: () => [PlaylistJSON] }) listJSON: PlaylistJSON[],
+    @Args('authorizationCode', { type: () => String, nullable: true })
+    authorizationCode?: string,
+    @Args('state', { type: () => String, nullable: true })
+    state?: string,
+  ): Promise<ConvertedPlaylist | AuthRequiredResponse> {
+    try {
+      const apiAccessToken = ctx.req.api_accessToken;
+
+      if (!apiAccessToken && !authorizationCode) {
+        throw new UnauthorizedException();
+      }
+
+      return await this.playlistService.convertToYoutubePlaylist(
+        user?.id || null,
+        apiAccessToken,
+        listJSON,
+      );
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        return {
+          needsAuth: true,
+          authUrl: this.googleAuthService.getAuthUrl({
+            state: state,
+          }),
+          apiDomain: ApiDomain.YOUTUBE,
+        };
+      }
+      throw error;
+    }
   }
 }

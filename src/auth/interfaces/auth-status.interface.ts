@@ -1,4 +1,6 @@
+import { UserInput } from 'src/user/dto/user.input';
 import { ApiDomain } from '../enums/api-domain.enum';
+import { Request, Response } from 'express';
 
 /**
  * OAuth2 토큰 응답의 기본 인터페이스
@@ -60,4 +62,20 @@ export interface OAuthStatus {
 export interface OAuth2AccessToken {
   apiDomain: ApiDomain;
   accessToken: string;
+}
+
+// 기존 인터페이스 확장
+export interface AuthRequiredError {
+  needsAuth: true;
+  authUrl: string;
+  apiDomain: ApiDomain;
+}
+
+// GraphQL Context 타입
+export interface GqlContext {
+  req: Request & {
+    user?: UserInput;
+    api_accessToken?: string;
+  };
+  res: Response;
 }
