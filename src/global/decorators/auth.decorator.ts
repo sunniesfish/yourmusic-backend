@@ -1,7 +1,7 @@
 import { applyDecorators, SetMetadata, UseGuards } from '@nestjs/common';
-import { AuthLevel } from '../../auth/enums/auth-level.enum';
-import { ApiDomain } from 'src/auth/enums/api-domain.enum';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { AuthLevel } from '../../auth/common/enums/auth-level.enum';
+import { ApiDomain } from 'src/auth/common/enums/api-domain.enum';
+import { JwtAuthGuard } from 'src/auth/core/guards/jwt-auth.guard';
 
 export const AUTH_LEVEL_KEY = 'authLevel';
 export function Auth(level: AuthLevel = AuthLevel.REQUIRED) {

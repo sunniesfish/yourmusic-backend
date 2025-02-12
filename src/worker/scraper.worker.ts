@@ -4,7 +4,7 @@ console.log(
 
 import { parentPort } from 'worker_threads';
 import puppeteer, { Browser } from 'puppeteer';
-import { scraperConfigService } from '../playlist/scraper/scraper.config';
+import { scraperConfigService } from '../playlist/providers/scraper/scraper.config';
 
 // Add debug logging
 const isDebug = process.env.NODE_ENV !== 'production';

@@ -1,20 +1,31 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Playlist } from './entities/playlist.entity';
-import { PlaylistService } from './playlist.service';
-import { PlaylistResolver } from './playlist.resolver';
-import { YouTubeModule } from './youtube/youtube.module';
-import { SpotifyModule } from './spotify/spotify.module';
+import { PlaylistService } from './core/services/playlist.service';
+import { PlaylistResolver } from './core/resolvers/playlist.resolver';
+import { YouTubeModule } from './providers/youtube/youtube.module';
+import { SpotifyModule } from './providers/spotify/spotify.module';
+import { ScraperModule } from './providers/scraper/scraper.module';
 import { AuthModule } from 'src/auth/auth.module';
+import { APP_FILTER } from '@nestjs/core';
+import { PlaylistExceptionFilter } from './core/filters/playlist-exception.filter';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Playlist]),
     YouTubeModule,
     SpotifyModule,
+    ScraperModule,
     AuthModule,
   ],
-  providers: [PlaylistService, PlaylistResolver],
+  providers: [
+    PlaylistService,
+    PlaylistResolver,
+    {
+      provide: APP_FILTER,
+      useClass: PlaylistExceptionFilter,
+    },
+  ],
   exports: [PlaylistService],
 })
 export class PlaylistModule {}

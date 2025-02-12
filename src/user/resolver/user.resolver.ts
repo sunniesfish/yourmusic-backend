@@ -8,7 +8,7 @@ import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { CurrentUser } from 'src/global/decorators/current-user';
 import { UserInput } from '../dto/user.input';
 import { Auth } from 'src/global/decorators/auth.decorator';
-import { AuthLevel } from 'src/auth/enums/auth-level.enum';
+import { AuthLevel } from 'src/auth/common/enums/auth-level.enum';
 
 @Resolver(() => User)
 export class UserResolver {

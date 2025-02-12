@@ -7,7 +7,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { PlaylistJSON } from '../dto/playlists.dto';
+import { PlaylistJSON } from 'src/playlist/common/dto/playlists.dto';
 
 @ObjectType('Playlist')
 @Entity()

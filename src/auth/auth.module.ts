@@ -1,23 +1,23 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserModule } from 'src/user/user.module';
-import { AuthService } from './service/auth.service';
-import { RefreshToken } from './entities/refresh-token.entity';
+import { AuthService } from 'src/auth/core/services/auth.service';
+import { RefreshToken } from 'src/auth/entities/refresh-token.entity';
 import { User } from 'src/user/entities/user.entity';
-import { SpotifyToken } from './entities/spotify-token.entity';
+import { SpotifyToken } from 'src/auth/entities/spotify-token.entity';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import { ConfigModule } from '@nestjs/config';
-import { GoogleAuthService } from './service/google-auth.service';
-import { YoutubeCredentials } from './entities/youtube-token.entity';
-import { SpotifyAuthService } from './service/spotify-auth.service';
-import { AuthResolver } from './resolvers/auth.resolver';
-import { OAuthGuard } from './guards/oauth.guard';
-import { YoutubeAuthResolver } from './resolvers/youtube-auth.resolver';
-import { SpotifyAuthResolver } from './resolvers/spotify-auth.resolver';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { JwtStrategy } from './strategy/jwt.strategy';
+import { GoogleAuthService } from 'src/auth/providers/google/google-auth.service';
+import { YoutubeCredentials } from 'src/auth/entities/youtube-token.entity';
+import { SpotifyAuthService } from 'src/auth/providers/spotify/spotify-auth.service';
+import { AuthResolver } from 'src/auth/core/resolvers/auth.resolver';
+import { OAuthGuard } from 'src/auth/core/guards/oauth.guard';
+import { YoutubeAuthResolver } from 'src/auth/providers/google/youtube-auth.resolver';
+import { SpotifyAuthResolver } from 'src/auth/providers/spotify/spotify-auth.resolver';
+import { JwtAuthGuard } from 'src/auth/core/guards/jwt-auth.guard';
+import { JwtStrategy } from 'src/auth/core/strategy/jwt.strategy';
 import { APP_GUARD } from '@nestjs/core';
 
 @Module({
