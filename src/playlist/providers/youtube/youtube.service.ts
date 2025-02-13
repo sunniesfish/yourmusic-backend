@@ -67,7 +67,7 @@ export class YouTubeService {
         async (oauth2Client) => {
           return this.youtubeApiClient.createPlaylist(
             oauth2Client,
-            playlistJSON[0].title,
+            'New Playlist ' + new Date().toISOString(),
           );
         },
       );
