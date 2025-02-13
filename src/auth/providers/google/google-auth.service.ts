@@ -3,7 +3,6 @@ import { OAuth2Client } from 'google-auth-library';
 import { YoutubeCredentials } from 'src/auth/entities/youtube-token.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { googleAuthConfigService } from 'src/auth/providers/google/google.auth.config';
 import { OAuth2Service } from 'src/auth/core/services/oauth2.service';
 
 import {
@@ -12,12 +11,17 @@ import {
   OAuth2AuthOptions,
 } from '../../common/interfaces/oauth.interface';
 import { AuthorizationError } from '../../common/errors/oauth.errors';
+import { ConfigService } from '@nestjs/config';
+import { createGoogleAuthConfig } from './google.auth.config';
+import { GOOGLE_OAUTH_SCOPES } from '../../common/constants/oauth-scope.constant';
 
 @Injectable()
 export class GoogleAuthService extends OAuth2Service {
+  private readonly config = createGoogleAuthConfig(this.configService);
   constructor(
     @InjectRepository(YoutubeCredentials)
     private readonly youtubeCredentialsRepository: Repository<YoutubeCredentials>,
+    private readonly configService: ConfigService,
   ) {
     super();
   }
@@ -28,9 +32,9 @@ export class GoogleAuthService extends OAuth2Service {
    */
   private createOAuthClient(): OAuth2Client {
     return new OAuth2Client(
-      googleAuthConfigService.getConfig().clientId,
-      googleAuthConfigService.getConfig().clientSecret,
-      googleAuthConfigService.getConfig().redirectUri,
+      this.config.clientId,
+      this.config.clientSecret,
+      this.config.redirectUri,
     );
   }
 
@@ -39,18 +43,27 @@ export class GoogleAuthService extends OAuth2Service {
     accessToken: string,
     refreshToken: string | null,
   ): Promise<OAuth2Client> {
+    console.log('=== OAuth Client Debug Info ===');
+    console.log('Creating OAuth client with:');
+    console.log('clientId:', this.config.clientId?.substring(0, 10) + '...');
+    console.log('redirectUri:', this.config.redirectUri);
+
     const oauth2Client = this.createOAuthClient();
+
     if (!userId) {
+      console.log('No userId, setting only access token');
       oauth2Client.setCredentials({
         access_token: accessToken,
       });
       return oauth2Client;
     }
 
+    console.log('Setting credentials with refresh token');
     oauth2Client.setCredentials({
       access_token: accessToken,
       refresh_token: refreshToken,
     });
+
     return oauth2Client;
   }
   /**
@@ -59,12 +72,13 @@ export class GoogleAuthService extends OAuth2Service {
    */
   getAuthUrl(options?: OAuth2AuthOptions): string {
     const oauth2Client = this.createOAuthClient();
+    console.log('///////////////config', this.config);
     return oauth2Client.generateAuthUrl({
       access_type: 'offline',
-      scope: ['https://www.googleapis.com/auth/youtube'],
+      scope: GOOGLE_OAUTH_SCOPES.YOUTUBE,
       prompt: 'consent',
-      redirect_uri: googleAuthConfigService.getConfig().redirectUri,
-      client_id: googleAuthConfigService.getConfig().clientId,
+      redirect_uri: this.config.redirectUri,
+      client_id: this.config.clientId,
       state: options?.state,
     });
   }
@@ -82,7 +96,13 @@ export class GoogleAuthService extends OAuth2Service {
     const oauth2Client = this.createOAuthClient();
     const { tokens } = await oauth2Client.getToken(authResponse.code);
 
-    if (userId) {
+    console.log('Received tokens:', {
+      access_token: tokens.access_token ? 'exists' : 'missing',
+      refresh_token: tokens.refresh_token ? 'exists' : 'missing',
+      expiry_date: tokens.expiry_date,
+    });
+
+    if (userId && tokens.refresh_token) {
       await this.youtubeCredentialsRepository.save({
         userId,
         accessToken: tokens.access_token,

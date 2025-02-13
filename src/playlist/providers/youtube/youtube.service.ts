@@ -33,6 +33,10 @@ export class YouTubeService {
     operation: (oauth2Client: any) => Promise<T>,
   ): Promise<T> {
     try {
+      console.log('=== Auth Debug Info ===');
+      console.log('userId:', userId);
+      console.log('accessToken:', accessToken?.substring(0, 10) + '...');
+
       const oauth2Client = await this.googleAuthService.getOAuthClient(
         userId,
         accessToken,
@@ -41,6 +45,9 @@ export class YouTubeService {
 
       return await operation(oauth2Client);
     } catch (error) {
+      console.log('=== Error Debug Info ===');
+      console.log('Error full details:', error);
+
       if (error.message?.includes('invalid_token')) {
         throw new PlatformAuthError('Invalid token');
       }
@@ -64,6 +71,8 @@ export class YouTubeService {
           );
         },
       );
+      console.log('=====||=====playlistId=====||=====');
+      console.log(playlistId);
 
       await this.processSongsInBatches(
         userId,
@@ -92,6 +101,7 @@ export class YouTubeService {
     songs: PlaylistJSON[],
     accessToken: string,
   ): Promise<void> {
+    console.log('=====||=====processSongsInBatches=====||=====');
     const batchSize = this.config.batchSize;
     for (let i = 0; i < songs.length; i += batchSize) {
       const batch = songs.slice(i, i + batchSize);
@@ -109,6 +119,7 @@ export class YouTubeService {
     song: PlaylistJSON,
     accessToken: string,
   ): Promise<void> {
+    console.log('=========processOneSong=========');
     try {
       const searchQuery = `${song.title} ${song.artist}`;
 
@@ -119,7 +130,7 @@ export class YouTubeService {
           return this.youtubeApiClient.searchVideo(oauth2Client, searchQuery);
         },
       );
-
+      console.log('videoId:', videoId);
       if (videoId) {
         await this.executeWithAuth(
           userId,

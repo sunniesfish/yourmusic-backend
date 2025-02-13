@@ -3,10 +3,6 @@ import ApiRateLimiter from '@sunniesfish/api-rate-limiter';
 import { GoogleAuthService } from 'src/auth/providers/google/google-auth.service';
 import { YouTubeConfig, YouTubeConfigService } from './youtubeConfig';
 import { OAuth2Client } from 'google-auth-library';
-import { PlatformResponse } from 'src/playlist/common/interfaces/platform.interface';
-
-// YouTubeResponse를 PlatformResponse로 대체
-type YouTubeResponse<T> = PlatformResponse<T>;
 
 interface YouTubePlaylistResponse {
   id: string;
@@ -46,24 +42,28 @@ export class YouTubeApiClient {
     url: string,
     options: RequestInit = {},
   ): Promise<T> {
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        Authorization: `Bearer ${oauth2Client.credentials.access_token}`,
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          Authorization: `Bearer ${oauth2Client.credentials.access_token}`,
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+      });
 
-    const data: YouTubeResponse<T> = await response.json();
+      const responseData = await response.json();
 
-    if (!response.ok) {
-      throw new Error(
-        `YouTube API Error: ${data.error?.message || response.statusText}`,
-      );
+      if (!response.ok) {
+        throw new Error(
+          `YouTube API Error: ${responseData.error?.message || response.statusText}`,
+        );
+      }
+
+      return responseData as T;
+    } catch (error) {
+      throw error;
     }
-
-    return data as T;
   }
 
   async createPlaylist(
@@ -80,7 +80,6 @@ export class YouTubeApiClient {
             snippet: {
               title: name,
               description: 'Converted playlist from another platform',
-              privacyStatus: 'private', // 기본값으로 private 설정
             },
           }),
         },

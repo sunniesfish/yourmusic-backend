@@ -43,17 +43,26 @@ export class OAuthGuard implements CanActivate {
     const accessToken = this.extractAccessToken(ctx.req, apiDomain);
     const userId = ctx.req.user?.id;
     const authCode = gqlContext.getArgs().authorizationCode;
+    console.log('///////////////authCode', authCode);
+    console.log('///////////////accessToken', accessToken);
+    console.log('///////////////userId', userId);
 
     if (!accessToken && authCode) {
+      console.log('////no accessToken and yes authCode');
       try {
-        const newToken = await this.getNewToken(apiDomain, authCode, userId);
-        ctx.req.api_accessToken = newToken.access_token;
-        ctx.res.cookie(`${apiDomain}_access_token`, newToken.access_token, {
+        const authResponse = await this.getNewToken(
+          apiDomain,
+          authCode,
+          userId,
+        );
+        ctx.req.api_accessToken = authResponse.access_token;
+        ctx.res.cookie(`${apiDomain}_access_token`, authResponse.access_token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
         });
         return true;
       } catch (error) {
+        console.log('error', error);
         throw new UnauthorizedException('Failed to get access token', {
           cause: error,
         });

@@ -89,4 +89,10 @@ export class AuthRequiredResponse {
 export const ConvertPlaylistResponse = createUnionType({
   name: 'ConvertPlaylistResponse',
   types: () => [ConvertedPlaylist, AuthRequiredResponse],
+  resolveType: (value) => {
+    if ('success' in value) {
+      return ConvertedPlaylist;
+    }
+    return AuthRequiredResponse;
+  },
 });
