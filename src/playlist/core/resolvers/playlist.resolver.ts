@@ -12,7 +12,7 @@ import { Playlist } from '../../entities/playlist.entity';
 import {
   ConvertedPlaylist,
   PlaylistJSON,
-  SavePlaylistInput,
+  MutatePlaylistInput,
   AuthRequiredResponse,
   ConvertPlaylistResponse,
 } from 'src/playlist/common/dto/playlists.dto';
@@ -22,6 +22,7 @@ import {
   UseGuards,
   UnauthorizedException,
   Inject,
+  BadRequestException,
 } from '@nestjs/common';
 import { UserInput } from 'src/user/dto/user.input';
 import { PlaylistsResponse } from 'src/playlist/common/dto/playlists.dto';
@@ -32,6 +33,7 @@ import { AuthLevel } from 'src/auth/common/enums/auth-level.enum';
 import { GoogleAuthService } from 'src/auth/providers/google/google-auth.service';
 import { OAuthGuard } from 'src/auth/core/guards/oauth.guard';
 import { GqlContext } from 'src/auth/common/interfaces/context.interface';
+import { SpotifyAuthService } from 'src/auth/providers/spotify/spotify-auth.service';
 
 @Resolver(() => Playlist)
 export class PlaylistResolver {
@@ -40,18 +42,38 @@ export class PlaylistResolver {
     private readonly playlistService: PlaylistService,
     @Inject()
     private readonly googleAuthService: GoogleAuthService,
+    @Inject()
+    private readonly spotifyAuthService: SpotifyAuthService,
   ) {}
 
   @Mutation(() => Boolean)
   async savePlaylist(
     @CurrentUser() user: UserInput,
-    @Args('savePlaylistInput') savePlaylistInput: SavePlaylistInput,
+    @Args('mutatePlaylistInput') mutatePlaylistInput: MutatePlaylistInput,
   ) {
     if (user === undefined || user.id === undefined) {
       throw new ForbiddenException();
     }
-    await this.playlistService.create(savePlaylistInput, user.id);
+    await this.playlistService.create(mutatePlaylistInput, user.id);
     return true;
+  }
+
+  @Mutation(() => Boolean)
+  async updatePlaylist(
+    @CurrentUser() user: UserInput,
+    @Args('mutatePlaylistInput') mutatePlaylistInput: MutatePlaylistInput,
+  ) {
+    if (user === undefined || user.id === undefined) {
+      throw new ForbiddenException();
+    }
+    if (mutatePlaylistInput.id === undefined) {
+      throw new BadRequestException('id is required');
+    }
+    return await this.playlistService.update(
+      mutatePlaylistInput.id,
+      user.id,
+      mutatePlaylistInput,
+    );
   }
 
   @Query(() => PlaylistsResponse, { name: 'playlistsPage' })
@@ -139,6 +161,7 @@ export class PlaylistResolver {
     @Args('state', { type: () => String, nullable: true })
     state?: string,
   ) {
+    console.log('convertToSpotifyPlaylist');
     try {
       const apiAccessToken = ctx.req.api_accessToken;
 
@@ -155,7 +178,7 @@ export class PlaylistResolver {
       if (error instanceof UnauthorizedException) {
         return {
           needsAuth: true,
-          authUrl: this.googleAuthService.getAuthUrl({
+          authUrl: this.spotifyAuthService.getAuthUrl({
             state: state,
           }),
           apiDomain: ApiDomain.SPOTIFY,

@@ -28,7 +28,10 @@ export class PlaylistsResponse {
  * 1. SavePlaylistInput
  */
 @InputType()
-export class SavePlaylistInput {
+export class MutatePlaylistInput {
+  @Field({ nullable: true })
+  id?: number;
+
   @Field()
   name: string;
 

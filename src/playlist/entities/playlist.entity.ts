@@ -36,6 +36,10 @@ export class Playlist {
   @CreateDateColumn({ type: 'datetime', nullable: false })
   createdAt: Date;
 
+  @Field(() => String, { name: 'userId' })
+  @Column({ type: 'varchar', nullable: false })
+  userId: string;
+
   @ManyToOne(() => User, (user) => user.id, { onDelete: 'CASCADE' })
   user: User;
 }

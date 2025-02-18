@@ -1,8 +1,8 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import {
   ConvertedPlaylist,
+  MutatePlaylistInput,
   PlaylistJSON,
-  SavePlaylistInput,
 } from 'src/playlist/common/dto/playlists.dto';
 import { DataSource, Repository } from 'typeorm';
 import { Playlist } from '../../entities/playlist.entity';
@@ -81,16 +81,17 @@ export class PlaylistService {
     }
   }
 
-  async create(savePlaylistInput: SavePlaylistInput, userId: string) {
+  async create(mutatePlaylistInput: MutatePlaylistInput, userId: string) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
       const playlist = this.playlistRepository.create({
         user: { id: userId },
-        name: savePlaylistInput.name,
-        thumbnail: savePlaylistInput.listJson[0].thumbnail,
-        listJson: savePlaylistInput.listJson,
+        userId: userId,
+        name: mutatePlaylistInput.name,
+        thumbnail: mutatePlaylistInput.listJson[0].thumbnail,
+        listJson: mutatePlaylistInput.listJson,
       });
       await queryRunner.manager.save(playlist);
       await queryRunner.commitTransaction();
@@ -163,6 +164,21 @@ export class PlaylistService {
       id,
       user: { id: userId },
     });
+    return result.affected === 1;
+  }
+
+  async update(
+    id: number,
+    userId: string,
+    mutatePlaylistInput: MutatePlaylistInput,
+  ) {
+    const result = await this.playlistRepository.update(
+      {
+        id,
+        user: { id: userId },
+      },
+      mutatePlaylistInput,
+    );
     return result.affected === 1;
   }
 }
