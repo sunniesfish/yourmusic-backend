@@ -43,22 +43,15 @@ export class GoogleAuthService extends OAuth2Service {
     accessToken: string,
     refreshToken: string | null,
   ): Promise<OAuth2Client> {
-    console.log('=== OAuth Client Debug Info ===');
-    console.log('Creating OAuth client with:');
-    console.log('clientId:', this.config.clientId?.substring(0, 10) + '...');
-    console.log('redirectUri:', this.config.redirectUri);
-
     const oauth2Client = this.createOAuthClient();
 
     if (!userId) {
-      console.log('No userId, setting only access token');
       oauth2Client.setCredentials({
         access_token: accessToken,
       });
       return oauth2Client;
     }
 
-    console.log('Setting credentials with refresh token');
     oauth2Client.setCredentials({
       access_token: accessToken,
       refresh_token: refreshToken,
@@ -72,7 +65,6 @@ export class GoogleAuthService extends OAuth2Service {
    */
   getAuthUrl(options?: OAuth2AuthOptions): string {
     const oauth2Client = this.createOAuthClient();
-    console.log('///////////////config', this.config);
     return oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: GOOGLE_OAUTH_SCOPES.YOUTUBE,
@@ -95,12 +87,6 @@ export class GoogleAuthService extends OAuth2Service {
   ): Promise<OAuth2TokenResponse> {
     const oauth2Client = this.createOAuthClient();
     const { tokens } = await oauth2Client.getToken(authResponse.code);
-
-    console.log('Received tokens:', {
-      access_token: tokens.access_token ? 'exists' : 'missing',
-      refresh_token: tokens.refresh_token ? 'exists' : 'missing',
-      expiry_date: tokens.expiry_date,
-    });
 
     if (userId && tokens.refresh_token) {
       await this.youtubeCredentialsRepository.save({

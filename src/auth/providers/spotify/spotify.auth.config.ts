@@ -1,28 +1,29 @@
+import { ConfigService } from '@nestjs/config';
+import { SPOTIFY_OAUTH_SCOPES } from 'src/auth/common/constants/oauth-scope.constant';
+
 export interface SpotifyAuthConfig {
   clientId: string;
   clientSecret: string;
   redirectUri: string;
   authEndpoint: string;
   tokenEndpoint: string;
-  scopes: string[];
 }
 
-export const spotifyAuthConfig: SpotifyAuthConfig = {
-  clientId: process.env.SPOTIFY_CLIENT_ID!,
-  clientSecret: process.env.SPOTIFY_CLIENT_SECRET!,
-  redirectUri: process.env.SPOTIFY_REDIRECT_URI!,
-  authEndpoint: 'https://accounts.spotify.com/authorize',
-  tokenEndpoint: 'https://accounts.spotify.com/api/token',
-  scopes: [
-    'playlist-read-private',
-    'playlist-read-collaborative',
-    'playlist-modify-public',
-    'playlist-modify-private',
-    'user-read-private',
-    'user-read-email',
-  ],
-};
+export function createSpotifyAuthConfig(
+  configService: ConfigService,
+): SpotifyAuthConfig {
+  const config = {
+    clientId: configService.get<string>('SPOTIFY_CLIENT_ID'),
+    clientSecret: configService.get<string>('SPOTIFY_CLIENT_SECRET'),
+    redirectUri: configService.get<string>('SPOTIFY_REDIRECT_URI'),
+    authEndpoint: 'https://accounts.spotify.com/authorize',
+    tokenEndpoint: 'https://accounts.spotify.com/api/token',
+    scopes: SPOTIFY_OAUTH_SCOPES.SPOTIFY,
+  };
 
-export const spotifyAuthConfigService = {
-  getConfig: () => spotifyAuthConfig,
-};
+  if (!config.clientId || !config.clientSecret || !config.redirectUri) {
+    throw new Error('Missing required Spotify OAuth configuration');
+  }
+
+  return config;
+}

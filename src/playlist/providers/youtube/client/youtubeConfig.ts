@@ -21,7 +21,7 @@ const youtubeConfig: YouTubeConfig = {
   apiLimitPerSecond:
     process.env.NODE_ENV === 'production'
       ? parseInt(process.env.YOUTUBE_API_LIMIT_PER_SECOND!)
-      : 3,
+      : 2,
   apiLimitPerMinute:
     process.env.NODE_ENV === 'production'
       ? parseInt(process.env.YOUTUBE_API_LIMIT_PER_MINUTE!)

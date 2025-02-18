@@ -11,14 +11,18 @@ import {
   OAuth2AuthOptions,
 } from '../../common/interfaces/oauth.interface';
 import { SpotifyToken } from 'src/auth/entities/spotify-token.entity';
-import { spotifyAuthConfig } from 'src/auth/providers/spotify/spotify.auth.config';
+import { createSpotifyAuthConfig } from 'src/auth/providers/spotify/spotify.auth.config';
 import { OAuth2Service } from 'src/auth/core/services/oauth2.service';
+import { ConfigService } from '@nestjs/config';
+import { SPOTIFY_OAUTH_SCOPES } from 'src/auth/common/constants/oauth-scope.constant';
 
 @Injectable()
 export class SpotifyAuthService extends OAuth2Service {
+  private readonly config = createSpotifyAuthConfig(this.configService);
   constructor(
     @InjectRepository(SpotifyToken)
     private readonly spotifyTokenRepository: Repository<SpotifyToken>,
+    private readonly configService: ConfigService,
   ) {
     super();
   }
@@ -30,15 +34,15 @@ export class SpotifyAuthService extends OAuth2Service {
   getAuthUrl(options?: OAuth2AuthOptions): string {
     const params = new URLSearchParams({
       response_type: 'code',
-      client_id: spotifyAuthConfig.clientId,
-      scope: spotifyAuthConfig.scopes.join(' '),
-      redirect_uri: spotifyAuthConfig.redirectUri,
+      client_id: this.config.clientId,
+      scope: SPOTIFY_OAUTH_SCOPES.SPOTIFY.join(' '),
+      redirect_uri: this.config.redirectUri,
       state: options?.state,
       show_dialog: 'true',
       access_type: 'offline',
     });
 
-    return `${spotifyAuthConfig.authEndpoint}?${params.toString()}`;
+    return `${this.config.authEndpoint}?${params.toString()}`;
   }
 
   /**
@@ -54,14 +58,14 @@ export class SpotifyAuthService extends OAuth2Service {
     const params = new URLSearchParams({
       grant_type: 'authorization_code',
       code: authResponse.code,
-      redirect_uri: spotifyAuthConfig.redirectUri,
+      redirect_uri: this.config.redirectUri,
     });
 
-    const response = await fetch(spotifyAuthConfig.tokenEndpoint, {
+    const response = await fetch(this.config.tokenEndpoint, {
       method: 'POST',
       headers: {
         Authorization: `Basic ${Buffer.from(
-          `${spotifyAuthConfig.clientId}:${spotifyAuthConfig.clientSecret}`,
+          `${this.config.clientId}:${this.config.clientSecret}`,
         ).toString('base64')}`,
         'Content-Type': 'application/x-www-form-urlencoded',
       },
@@ -103,11 +107,11 @@ export class SpotifyAuthService extends OAuth2Service {
       refresh_token: credentials.refreshToken,
     });
 
-    const response = await fetch(spotifyAuthConfig.tokenEndpoint, {
+    const response = await fetch(this.config.tokenEndpoint, {
       method: 'POST',
       headers: {
         Authorization: `Basic ${Buffer.from(
-          `${spotifyAuthConfig.clientId}:${spotifyAuthConfig.clientSecret}`,
+          `${this.config.clientId}:${this.config.clientSecret}`,
         ).toString('base64')}`,
         'Content-Type': 'application/x-www-form-urlencoded',
       },

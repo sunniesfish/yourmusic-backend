@@ -40,6 +40,7 @@ export class YouTubeApiClient {
       },
       (error) => {
         console.error('YouTube API Rate Limiter Error:', error);
+        console.log('///////////////////////////////////////error:');
       },
     );
   }
@@ -62,6 +63,7 @@ export class YouTubeApiClient {
 
       const responseData = await response.json();
       if (!response.ok) {
+        console.log('responseData:', responseData);
         throw new Error(
           `YouTube API Error: ${responseData.error?.message || response.statusText}`,
         );
@@ -92,6 +94,8 @@ export class YouTubeApiClient {
           }),
         },
       );
+      console.log('createPlaylist data:', data);
+      console.log('====================================');
       return data.id;
     });
   }
@@ -101,12 +105,14 @@ export class YouTubeApiClient {
     query: string,
   ): Promise<string | null> {
     return this.apiRateLimiter.addRequest(async () => {
+      console.log('=====||=====searchVideo=====||=====');
       const encodedQuery = encodeURIComponent(query);
       const data = await this.makeRequest<YouTubeSearchResponse>(
         oauth2Client,
-        `${this.config.baseUrl}/search?part=snippet&type=video&maxResults=1&q=${encodedQuery}`,
+        `${this.config.baseUrl}/search?part=snippet&type=video&maxResults=1&q=${encodedQuery}&fields=items(id/videoId)`,
       );
       console.log('searchVideo data:', data);
+      console.log('====================================');
 
       return data?.items[0]?.id?.videoId || null;
     });
@@ -135,6 +141,7 @@ export class YouTubeApiClient {
         },
       );
       console.log('addToPlaylist data:', data);
+      console.log('====================================');
     });
   }
 }
