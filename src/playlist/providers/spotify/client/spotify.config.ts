@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 export interface SpotifyConfig {
   apiEndpoint: string;
@@ -8,26 +8,34 @@ export interface SpotifyConfig {
   apiLimitQueueSize: number;
 }
 
-@Injectable()
-export class SpotifyConfigService {
-  getConfig(): SpotifyConfig {
-    return spotifyConfig;
-  }
-}
+export function createSpotifyApiConfig(
+  configService: ConfigService,
+): SpotifyConfig {
+  const config = {
+    apiEndpoint: configService.get<string>('SPOTIFY_API_ENDPOINT'),
+    addSongBatchSize: parseInt(
+      configService.get<string>('SPOTIFY_ADD_SONG_BATCH_SIZE'),
+    ),
+    apiLimitPerSecond: parseInt(
+      configService.get<string>('SPOTIFY_API_LIMIT_PER_SECOND'),
+    ),
+    apiLimitPerMinute: parseInt(
+      configService.get<string>('SPOTIFY_API_LIMIT_PER_MINUTE'),
+    ),
+    apiLimitQueueSize: parseInt(
+      configService.get<string>('SPOTIFY_API_LIMIT_QUEUE_SIZE'),
+    ),
+  };
 
-const spotifyConfig: SpotifyConfig = {
-  apiEndpoint: process.env.SPOTIFY_API_ENDPOINT!,
-  addSongBatchSize: parseInt(process.env.SPOTIFY_ADD_SONG_BATCH_SIZE!),
-  apiLimitPerSecond:
-    process.env.NODE_ENV === 'production'
-      ? parseInt(process.env.SPOTIFY_API_LIMIT_PER_SECOND!)
-      : 3,
-  apiLimitPerMinute:
-    process.env.NODE_ENV === 'production'
-      ? parseInt(process.env.SPOTIFY_API_LIMIT_PER_MINUTE!)
-      : 100,
-  apiLimitQueueSize:
-    process.env.NODE_ENV === 'production'
-      ? parseInt(process.env.SPOTIFY_API_LIMIT_QUEUE_SIZE!)
-      : 1000,
-};
+  if (
+    !config.apiEndpoint ||
+    !config.addSongBatchSize ||
+    !config.apiLimitPerSecond ||
+    !config.apiLimitPerMinute ||
+    !config.apiLimitQueueSize
+  ) {
+    throw new Error('Missing required Spotify API configuration');
+  }
+
+  return config;
+}

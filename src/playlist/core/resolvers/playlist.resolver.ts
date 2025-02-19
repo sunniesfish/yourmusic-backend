@@ -115,9 +115,23 @@ export class PlaylistResolver {
 
   @Auth(AuthLevel.NONE)
   @Query(() => Playlist, { name: 'playlist' })
-  async findOne(@Args('id', { type: () => Int }) id: number) {
-    console.log('findOne//////////');
-    return await this.playlistService.findOne(id);
+  async findOne(
+    @Args('id', { type: () => Int }) id: number,
+    @Info() info: GraphQLResolveInfo,
+  ) {
+    const selections = info.fieldNodes[0].selectionSet?.selections || [];
+    const playlistFields = new Set<string>();
+
+    selections.forEach((selection) => {
+      if (selection.kind === 'Field' && selection.name.value === 'playlist') {
+        selection.selectionSet?.selections.forEach((field) => {
+          if (field.kind === 'Field') {
+            playlistFields.add(field.name.value);
+          }
+        });
+      }
+    });
+    return await this.playlistService.findOne(id, Array.from(playlistFields));
   }
 
   @Mutation(() => Boolean)

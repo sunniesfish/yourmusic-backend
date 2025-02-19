@@ -35,8 +35,8 @@ export class MutatePlaylistInput {
   @Field()
   name: string;
 
-  @Field(() => [PlaylistJSON])
-  listJson: PlaylistJSON[];
+  @Field(() => [PlaylistJSON], { nullable: true })
+  listJson?: PlaylistJSON[];
 }
 
 /**

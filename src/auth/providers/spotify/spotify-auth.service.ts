@@ -74,10 +74,11 @@ export class SpotifyAuthService extends OAuth2Service {
 
     const tokens = await response.json();
 
+    console.log('get token', tokens);
+
     await this.spotifyTokenRepository.save({
       userId,
       refreshToken: tokens.refresh_token,
-      expiryDate: tokens.expires_in,
     });
 
     return {
@@ -126,7 +127,6 @@ export class SpotifyAuthService extends OAuth2Service {
     const newCredentials = await response.json();
 
     await this.spotifyTokenRepository.update(userId, {
-      expiresAt: new Date(Date.now() + newCredentials.expires_in * 1000),
       refreshToken: newCredentials.refresh_token,
     });
 

@@ -1,8 +1,9 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { SpotifyConfigService } from './spotify.config';
-import ApiRateLimiter from '@sunniesfish/api-rate-limiter';
 import { SpotifyAuthService } from 'src/auth/providers/spotify/spotify-auth.service';
 import { PlatformResponse } from 'src/playlist/common/interfaces/platform.interface';
+import { createSpotifyApiConfig } from './spotify.config';
+import ApiRateLimiter from '@sunniesfish/api-rate-limiter';
+import { ConfigService } from '@nestjs/config';
 
 interface SpotifyPlaylistResponse {
   id: string;
@@ -23,16 +24,16 @@ interface SpotifySearchResponse {
 @Injectable()
 export class SpotifyApiClient {
   private readonly apiRateLimiter: ApiRateLimiter<any>;
+  private readonly config = createSpotifyApiConfig(this.configService);
 
   constructor(
-    private readonly configService: SpotifyConfigService,
+    private readonly configService: ConfigService,
     private readonly spotifyAuthService: SpotifyAuthService,
   ) {
-    const config = this.configService.getConfig();
     this.apiRateLimiter = new ApiRateLimiter({
-      maxPerSecond: config.apiLimitPerSecond,
-      maxPerMinute: config.apiLimitPerMinute,
-      maxQueueSize: config.apiLimitQueueSize,
+      maxPerSecond: this.config.apiLimitPerSecond,
+      maxPerMinute: this.config.apiLimitPerMinute,
+      maxQueueSize: this.config.apiLimitQueueSize,
     });
   }
 
@@ -95,7 +96,7 @@ export class SpotifyApiClient {
       const data = await this.makeRequest<SpotifyPlaylistResponse>(
         userId,
         accessToken,
-        `${this.configService.getConfig().apiEndpoint}/me/playlists`,
+        `${this.configService.get('SPOTIFY_API_ENDPOINT')}/me/playlists`,
         {
           method: 'POST',
           body: JSON.stringify({
@@ -127,7 +128,7 @@ export class SpotifyApiClient {
       const data = await this.makeRequest<SpotifySearchResponse>(
         userId,
         accessToken,
-        `${this.configService.getConfig().apiEndpoint}/search?q=${encodeURIComponent(
+        `${this.config.apiEndpoint}/search?q=${encodeURIComponent(
           query,
         )}&type=track&limit=1`,
       );
@@ -144,7 +145,7 @@ export class SpotifyApiClient {
     playlistId: string,
     songUris: { songUri: string }[],
   ): Promise<void> {
-    const batchSize = this.configService.getConfig().addSongBatchSize;
+    const batchSize = this.config.addSongBatchSize;
 
     for (let i = 0; i < songUris.length; i += batchSize) {
       const batch = songUris.slice(i, i + batchSize);
@@ -152,7 +153,7 @@ export class SpotifyApiClient {
         await this.makeRequest(
           userId,
           accessToken,
-          `${this.configService.getConfig().apiEndpoint}/playlists/${playlistId}/tracks`,
+          `${this.config.apiEndpoint}/playlists/${playlistId}/tracks`,
           {
             method: 'POST',
             body: JSON.stringify({

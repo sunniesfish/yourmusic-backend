@@ -51,7 +51,7 @@ export class SpotifyService {
       const playlist = await this.spotifyApiClient.createPlaylist(
         userId,
         accessToken,
-        playlistJSON[0].title,
+        'New Playlist ' + new Date().toISOString(),
       );
 
       const searchResults = await Promise.allSettled(

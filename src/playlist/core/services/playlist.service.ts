@@ -153,10 +153,19 @@ export class PlaylistService {
     };
   }
 
-  async findOne(id: number) {
-    return await this.playlistRepository.findOne({
-      where: { id },
-    });
+  async findOne(id: number, fields: string[] = []) {
+    const query = this.playlistRepository.createQueryBuilder('playlist');
+
+    if (fields.length > 0) {
+      fields.forEach((field) => {
+        if (field === 'id') query.addSelect('playlist.id');
+        if (field === 'name') query.addSelect('playlist.name');
+        if (field === 'thumbnail') query.addSelect('playlist.thumbnail');
+        if (field === 'createdAt') query.addSelect('playlist.createdAt');
+        if (field === 'listJson') query.addSelect('playlist.listJson');
+      });
+    }
+    return await query.where('playlist.id = :id', { id }).getOne();
   }
 
   async remove(id: number, userId: string) {
