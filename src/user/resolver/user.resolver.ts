@@ -56,6 +56,8 @@ export class UserResolver {
     @Args('updateUserInput') updateUserInput: UpdateUserInput,
     @CurrentUser() user: UserInput,
   ): Promise<boolean> {
+    console.log('updateUser', user);
+    console.log('updateUserInput', updateUserInput);
     if (user.id !== updateUserInput.id) {
       throw new ForbiddenException();
     }

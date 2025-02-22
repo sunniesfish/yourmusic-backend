@@ -69,11 +69,13 @@ export class PlaylistResolver {
     if (mutatePlaylistInput.id === undefined) {
       throw new BadRequestException('id is required');
     }
-    return await this.playlistService.update(
+    const result = await this.playlistService.update(
       mutatePlaylistInput.id,
       user.id,
       mutatePlaylistInput,
     );
+    console.log('result', result);
+    return result;
   }
 
   @Query(() => PlaylistsResponse, { name: 'playlistsPage' })

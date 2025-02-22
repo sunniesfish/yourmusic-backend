@@ -30,11 +30,16 @@ export class SpotifyApiClient {
     private readonly configService: ConfigService,
     private readonly spotifyAuthService: SpotifyAuthService,
   ) {
-    this.apiRateLimiter = new ApiRateLimiter({
-      maxPerSecond: this.config.apiLimitPerSecond,
-      maxPerMinute: this.config.apiLimitPerMinute,
-      maxQueueSize: this.config.apiLimitQueueSize,
-    });
+    this.apiRateLimiter = new ApiRateLimiter(
+      {
+        maxPerSecond: this.config.apiLimitPerSecond,
+        maxPerMinute: this.config.apiLimitPerMinute,
+        maxQueueSize: this.config.apiLimitQueueSize,
+      },
+      (error) => {
+        console.log('Spotify API Rate Limiter Error:', error);
+      },
+    );
   }
 
   private async makeRequest<T>(
@@ -43,6 +48,7 @@ export class SpotifyApiClient {
     url: string,
     options: RequestInit = {},
   ): Promise<T> {
+    console.log('///makeRequest///');
     const response = await fetch(url, {
       ...options,
       headers: {
@@ -52,6 +58,7 @@ export class SpotifyApiClient {
       },
     });
 
+    console.log('makeRequest response', response);
     if (response.status === 429) {
       const retryAfter = parseInt(response.headers.get('Retry-After') || '1');
       await new Promise((resolve) => setTimeout(resolve, retryAfter * 1000));
@@ -93,6 +100,7 @@ export class SpotifyApiClient {
     playlistName: string;
   }> {
     return this.apiRateLimiter.addRequest(async () => {
+      console.log('///createPlaylist///');
       const data = await this.makeRequest<SpotifyPlaylistResponse>(
         userId,
         accessToken,
@@ -106,6 +114,8 @@ export class SpotifyApiClient {
           }),
         },
       );
+
+      console.log('createPlaylist', data);
 
       return {
         playlistId: data.id,
@@ -121,6 +131,7 @@ export class SpotifyApiClient {
     songData: { title: string; artist: string },
   ): Promise<{ songUri: string } | null> {
     return this.apiRateLimiter.addRequest(async () => {
+      console.log('///searchSong///');
       const query = songData.artist
         ? `track:${songData.title} artist:${songData.artist}`
         : `track:${songData.title}`;
@@ -132,6 +143,8 @@ export class SpotifyApiClient {
           query,
         )}&type=track&limit=1`,
       );
+
+      console.log('searchSong', data);
 
       return data.tracks.items[0]
         ? { songUri: data.tracks.items[0].uri }
@@ -150,7 +163,8 @@ export class SpotifyApiClient {
     for (let i = 0; i < songUris.length; i += batchSize) {
       const batch = songUris.slice(i, i + batchSize);
       await this.apiRateLimiter.addRequest(async () => {
-        await this.makeRequest(
+        console.log('///addSongsToPlaylist///');
+        const data = await this.makeRequest(
           userId,
           accessToken,
           `${this.config.apiEndpoint}/playlists/${playlistId}/tracks`,
@@ -161,6 +175,8 @@ export class SpotifyApiClient {
             }),
           },
         );
+
+        console.log('addSongsToPlaylist', data);
       });
     }
   }
