@@ -167,7 +167,8 @@ export class AuthService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
-    user.password = input.password;
+    const hashedPassword = await bcrypt.hash(input.password, 10);
+    user.password = hashedPassword;
     await this.userRepository.save(user);
     return true;
   }

@@ -18,7 +18,8 @@ export class UserService {
 
   async update(updateUserInput: UpdateUserInput) {
     const { id, ...update } = updateUserInput;
-
+    console.log('///updateUserInput');
+    console.log(id, update);
     const updatedUser = await this.userRepository.update(id, update);
     if (updatedUser.affected === 0) {
       throw new NotFoundException('User not found');
