@@ -1,9 +1,12 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { SpotifyAuthService } from 'src/auth/providers/spotify/spotify-auth.service';
+import { Injectable } from '@nestjs/common';
 import { PlatformResponse } from 'src/playlist/common/interfaces/platform.interface';
 import { createSpotifyApiConfig } from './spotify.config';
 import ApiRateLimiter from '@sunniesfish/api-rate-limiter';
 import { ConfigService } from '@nestjs/config';
+import {
+  PlatformAuthError,
+  PlatformError,
+} from 'src/playlist/common/errors/platform.errors';
 
 interface SpotifyPlaylistResponse {
   id: string;
@@ -26,10 +29,7 @@ export class SpotifyApiClient {
   private readonly apiRateLimiter: ApiRateLimiter<any>;
   private readonly config = createSpotifyApiConfig(this.configService);
 
-  constructor(
-    private readonly configService: ConfigService,
-    private readonly spotifyAuthService: SpotifyAuthService,
-  ) {
+  constructor(private readonly configService: ConfigService) {
     this.apiRateLimiter = new ApiRateLimiter(
       {
         maxPerSecond: this.config.apiLimitPerSecond,
@@ -64,25 +64,14 @@ export class SpotifyApiClient {
       await new Promise((resolve) => setTimeout(resolve, retryAfter * 1000));
       return this.makeRequest<T>(userId, accessToken, url, options);
     }
-
     if (response.status === 401) {
-      if (userId) {
-        const newAccessToken =
-          await this.spotifyAuthService.refreshAccessToken(userId);
-        return this.makeRequest<T>(
-          userId,
-          newAccessToken.access_token,
-          url,
-          options,
-        );
-      }
-      throw new UnauthorizedException('Failed to refresh access token');
+      throw new PlatformAuthError('Failed to refresh access token');
     }
 
     const data: PlatformResponse<T> = await response.json();
 
     if (!response.ok) {
-      throw new Error(
+      throw new PlatformError(
         `Spotify API Error: ${data.error?.message || response.statusText}`,
       );
     }

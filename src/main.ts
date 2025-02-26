@@ -1,12 +1,12 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
-
+import * as cookieParser from 'cookie-parser';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.use(cookieParser());
   const configService = app.get(ConfigService);
 
-  // CORS 설정
   const isDevelopment = configService.get('NODE_ENV') === 'development';
   const corsOrigin = isDevelopment
     ? configService.get('CORS_ORIGIN_DEV')

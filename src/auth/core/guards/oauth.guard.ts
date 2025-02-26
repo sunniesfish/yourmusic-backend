@@ -43,30 +43,32 @@ export class OAuthGuard implements CanActivate {
     const accessToken = this.extractAccessToken(ctx.req, apiDomain);
     const userId = ctx.req.user?.id;
     const authCode = gqlContext.getArgs().authorizationCode;
-    console.log('///////////////authCode', authCode);
+
     console.log('///////////////accessToken', accessToken);
+    console.log('///////////////authCode', authCode);
     console.log('///////////////userId', userId);
 
     if (!accessToken && authCode) {
-      console.log('////no accessToken and yes authCode');
       try {
         const authResponse = await this.getNewToken(
           apiDomain,
           authCode,
           userId,
         );
-        ctx.req.api_accessToken = authResponse.access_token;
-        ctx.res.cookie(`${apiDomain}_access_token`, authResponse.access_token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-        });
+        this.setAccessTokenToContext(ctx, apiDomain, authResponse.access_token);
         return true;
       } catch (error) {
-        console.log('error', error);
         throw new UnauthorizedException('Failed to get access token', {
           cause: error,
         });
       }
+    }
+    if (!accessToken && !authCode && userId) {
+      try {
+        const authResponse = await this.refreshAccessToken(apiDomain, userId);
+        this.setAccessTokenToContext(ctx, apiDomain, authResponse.access_token);
+        return true;
+      } catch (error) {}
     }
 
     ctx.req.api_accessToken = accessToken;
@@ -114,5 +116,37 @@ export class OAuthGuard implements CanActivate {
       );
     }
     throw new UnauthorizedException('Invalid API domain');
+  }
+
+  private async refreshAccessToken(
+    apiDomain: ApiDomain,
+    userId: string,
+  ): Promise<OAuth2TokenResponse> {
+    if (apiDomain === ApiDomain.YOUTUBE) {
+      return await this.googleAuthService.refreshAccessToken(userId);
+    }
+    if (apiDomain === ApiDomain.SPOTIFY) {
+      return await this.spotifyAuthService.refreshAccessToken(userId);
+    }
+    throw new UnauthorizedException('Invalid API domain');
+  }
+
+  private setAccessTokenToContext(
+    ctx: GqlContext,
+    apiDomain: ApiDomain,
+    accessToken: string,
+  ) {
+    ctx.req.api_accessToken = accessToken;
+    ctx.res.cookie(`${apiDomain}_access_token`, accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      domain:
+        process.env.NODE_ENV === 'production'
+          ? process.env.CORS_ORIGIN_PROD
+          : 'localhost',
+      path: '/',
+      maxAge: 24 * 60 * 60 * 1000,
+    });
   }
 }

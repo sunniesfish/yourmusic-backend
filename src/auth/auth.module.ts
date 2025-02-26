@@ -19,7 +19,7 @@ import { SpotifyAuthResolver } from 'src/auth/providers/spotify/spotify-auth.res
 import { JwtAuthGuard } from 'src/auth/core/guards/jwt-auth.guard';
 import { JwtStrategy } from 'src/auth/core/strategy/jwt.strategy';
 import { APP_GUARD } from '@nestjs/core';
-
+import { OAuth2Interceptor } from 'src/auth/core/interceptor/oauth2.interceptor';
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
@@ -54,6 +54,7 @@ import { APP_GUARD } from '@nestjs/core';
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
+    OAuth2Interceptor,
   ],
   exports: [
     AuthService,
@@ -61,6 +62,7 @@ import { APP_GUARD } from '@nestjs/core';
     SpotifyAuthService,
     OAuthGuard,
     JwtAuthGuard,
+    OAuth2Interceptor,
   ],
 })
 export class AuthModule {}

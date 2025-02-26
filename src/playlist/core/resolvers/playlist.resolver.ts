@@ -34,6 +34,8 @@ import { GoogleAuthService } from 'src/auth/providers/google/google-auth.service
 import { OAuthGuard } from 'src/auth/core/guards/oauth.guard';
 import { GqlContext } from 'src/auth/common/interfaces/context.interface';
 import { SpotifyAuthService } from 'src/auth/providers/spotify/spotify-auth.service';
+import { OAuth2Interceptor } from 'src/auth/core/interceptor/oauth2.interceptor';
+import { UseInterceptors } from '@nestjs/common';
 
 @Resolver(() => Playlist)
 export class PlaylistResolver {
@@ -166,6 +168,7 @@ export class PlaylistResolver {
   @Auth(AuthLevel.OPTIONAL)
   @UseGuards(OAuthGuard)
   @RequireOAuth(ApiDomain.SPOTIFY)
+  @UseInterceptors(OAuth2Interceptor)
   @Mutation(() => ConvertPlaylistResponse)
   async convertToSpotifyPlaylist(
     @Context() ctx: any,
@@ -177,7 +180,6 @@ export class PlaylistResolver {
     @Args('state', { type: () => String, nullable: true })
     state?: string,
   ) {
-    console.log('convertToSpotifyPlaylist');
     try {
       const apiAccessToken = ctx.req.api_accessToken;
 
@@ -216,6 +218,7 @@ export class PlaylistResolver {
   @Auth(AuthLevel.OPTIONAL)
   @UseGuards(OAuthGuard)
   @RequireOAuth(ApiDomain.YOUTUBE)
+  @UseInterceptors(OAuth2Interceptor)
   @Mutation(() => ConvertPlaylistResponse)
   async convertToYoutubePlaylist(
     @Context() ctx: GqlContext,

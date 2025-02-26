@@ -28,6 +28,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       AuthLevel.REQUIRED;
     // if authLevel is NONE, return true
     if (authLevel === AuthLevel.NONE) {
+      console.log('none auth');
       return true;
     }
 
@@ -37,6 +38,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     } catch (error) {
       // if authLevel is OPTIONAL, return true
       if (authLevel === AuthLevel.OPTIONAL) {
+        console.log('optional auth');
         return true;
       }
       throw error;
@@ -51,6 +53,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
     // if authLevel is OPTIONAL and user is not found, return null
     if (authLevel === AuthLevel.OPTIONAL && !user) {
+      console.log('optional but user not found');
       return null;
     }
 

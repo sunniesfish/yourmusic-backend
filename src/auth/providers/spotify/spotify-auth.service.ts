@@ -74,12 +74,12 @@ export class SpotifyAuthService extends OAuth2Service {
 
     const tokens = await response.json();
 
-    console.log('get token', tokens);
-
-    await this.spotifyTokenRepository.save({
-      userId,
-      refreshToken: tokens.refresh_token,
-    });
+    if (userId && tokens.refresh_token) {
+      const result = await this.spotifyTokenRepository.save({
+        userId,
+        refreshToken: tokens.refresh_token,
+      });
+    }
 
     return {
       access_token: tokens.access_token,
@@ -100,7 +100,12 @@ export class SpotifyAuthService extends OAuth2Service {
     });
 
     if (!credentials.refreshToken) {
-      throw new AuthorizationError('Refresh token not found');
+      return {
+        access_token: null,
+        token_type: null,
+        expires_in: null,
+        refresh_token: null,
+      };
     }
 
     const params = new URLSearchParams({
