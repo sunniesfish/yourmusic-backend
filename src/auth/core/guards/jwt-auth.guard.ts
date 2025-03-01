@@ -21,6 +21,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    console.log('///////////////JwtAuthGuard canActivate 시작');
     // get authLevel from decorator
     // if not found, set to REQUIRED
     const authLevel =

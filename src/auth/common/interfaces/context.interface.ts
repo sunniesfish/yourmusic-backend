@@ -5,6 +5,7 @@ export interface GqlContext {
   req: Request & {
     user?: UserInput;
     api_accessToken?: string;
+    needsAuthUrl?: boolean;
   };
   res: Response;
 }

@@ -82,10 +82,10 @@ export class SpotifyService {
         message: 'Playlist converted successfully',
         playlistId: playlist.playlistId,
         playlistName: playlist.playlistName,
-        playlistUrl: playlist.playlistUri,
+        playlistUrl: `https://open.spotify.com/playlist/${playlist.playlistId}`,
       };
     } catch (error) {
-      throw new Error(`Failed to convert to Spotify playlist: ${error}`);
+      throw error;
     }
   }
 }

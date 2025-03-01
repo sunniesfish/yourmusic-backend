@@ -21,7 +21,6 @@ export class PlaylistService {
     private readonly dataSource: DataSource,
   ) {}
 
-  // need to fix - return type
   async convertToSpotifyPlaylist(
     userId: string,
     accessToken: string,

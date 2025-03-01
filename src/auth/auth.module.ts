@@ -13,13 +13,14 @@ import { GoogleAuthService } from 'src/auth/providers/google/google-auth.service
 import { YoutubeCredentials } from 'src/auth/entities/youtube-token.entity';
 import { SpotifyAuthService } from 'src/auth/providers/spotify/spotify-auth.service';
 import { AuthResolver } from 'src/auth/core/resolvers/auth.resolver';
-import { OAuthGuard } from 'src/auth/core/guards/oauth.guard';
 import { YoutubeAuthResolver } from 'src/auth/providers/google/youtube-auth.resolver';
 import { SpotifyAuthResolver } from 'src/auth/providers/spotify/spotify-auth.resolver';
 import { JwtAuthGuard } from 'src/auth/core/guards/jwt-auth.guard';
 import { JwtStrategy } from 'src/auth/core/strategy/jwt.strategy';
 import { APP_GUARD } from '@nestjs/core';
-import { OAuth2Interceptor } from 'src/auth/core/interceptor/oauth2.interceptor';
+import { OAuthErrorInterceptor } from 'src/auth/core/interceptors/oauth-error.interceptor';
+import { OAuthInterceptor } from 'src/auth/core/interceptors/oauth.interceptor';
+
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
@@ -48,21 +49,22 @@ import { OAuth2Interceptor } from 'src/auth/core/interceptor/oauth2.interceptor'
     GoogleAuthService,
     SpotifyAuthService,
     JwtAuthGuard,
-    OAuthGuard,
     JwtStrategy,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
-    OAuth2Interceptor,
+    OAuthErrorInterceptor,
+    OAuthInterceptor,
   ],
   exports: [
     AuthService,
     GoogleAuthService,
     SpotifyAuthService,
-    OAuthGuard,
     JwtAuthGuard,
-    OAuth2Interceptor,
+    JwtAuthGuard,
+    OAuthErrorInterceptor,
+    OAuthInterceptor,
   ],
 })
 export class AuthModule {}

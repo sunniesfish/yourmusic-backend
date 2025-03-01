@@ -10,7 +10,7 @@ import {
   OAuth2TokenResponse,
   OAuth2AuthOptions,
 } from '../../common/interfaces/oauth.interface';
-import { AuthorizationError } from '../../common/errors/oauth.errors';
+import { OAuthorizationError } from '../../common/errors/oauth.errors';
 import { ConfigService } from '@nestjs/config';
 import { createGoogleAuthConfig } from './google.auth.config';
 import { GOOGLE_OAUTH_SCOPES } from '../../common/constants/oauth-scope.constant';
@@ -116,8 +116,8 @@ export class GoogleAuthService extends OAuth2Service {
       where: { userId },
     });
 
-    if (!credentials.refreshToken) {
-      throw new AuthorizationError('Refresh token not found');
+    if (!credentials) {
+      throw new OAuthorizationError('Refresh token not found');
     }
 
     oauth2Client.setCredentials({

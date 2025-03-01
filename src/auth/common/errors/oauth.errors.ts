@@ -9,19 +9,15 @@ export class OAuthError extends Error {
   }
 }
 
-export class TokenError extends OAuthError {
-  constructor(message: string) {
-    super(message, 'TOKEN_ERROR', 401);
-  }
-}
-
-export class AuthenticationError extends OAuthError {
+// Throw when external api throw 401
+export class OAuthenticationError extends OAuthError {
   constructor(message: string) {
     super(message, 'AUTHENTICATION_ERROR', 401);
   }
 }
 
-export class AuthorizationError extends OAuthError {
+// Throw when external api throw 403
+export class OAuthorizationError extends OAuthError {
   constructor(message: string) {
     super(message, 'AUTHORIZATION_ERROR', 403);
   }

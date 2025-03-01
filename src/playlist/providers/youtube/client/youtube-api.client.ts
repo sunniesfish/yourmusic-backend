@@ -3,11 +3,8 @@ import ApiRateLimiter from '@sunniesfish/api-rate-limiter';
 import { GoogleAuthService } from 'src/auth/providers/google/google-auth.service';
 import { YouTubeConfig, YouTubeConfigService } from './youtubeConfig';
 import { OAuth2Client } from 'google-auth-library';
-import {
-  PlatformAuthError,
-  PlatformError,
-} from 'src/playlist/common/errors/platform.errors';
-
+import { PlatformError } from 'src/playlist/common/errors/platform.errors';
+import { OAuthorizationError } from 'src/auth/common/errors/oauth.errors';
 interface YouTubePlaylistResponse {
   id: string;
   snippet: {
@@ -73,7 +70,7 @@ export class YouTubeApiClient {
         return this.makeRequest<T>(oauth2Client, url, options);
       }
       if (response.status === 401) {
-        throw new PlatformAuthError('Failed to refresh access token');
+        throw new OAuthorizationError('Failed to refresh access token');
       }
       if (!response.ok) {
         console.log('responseData:', responseData);

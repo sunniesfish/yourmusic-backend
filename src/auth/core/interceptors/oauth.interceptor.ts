@@ -1,23 +1,27 @@
 import {
-  CanActivate,
-  ExecutionContext,
   Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { GqlExecutionContext } from '@nestjs/graphql';
+import { Observable } from 'rxjs';
 import { OAUTH_TYPE_KEY } from '../../../global/decorators/auth.decorator';
 import { ApiDomain } from '../../common/enums/api-domain.enum';
-import { GqlExecutionContext } from '@nestjs/graphql';
 import { SpotifyAuthService } from 'src/auth/providers/spotify/spotify-auth.service';
 import { GoogleAuthService } from 'src/auth/providers/google/google-auth.service';
 import { OAuth2TokenResponse } from '../../common/interfaces/oauth.interface';
 import { GqlContext } from '../../common/interfaces/context.interface';
+import { OAuthorizationError } from 'src/auth/common/errors/oauth.errors';
+
 /**
- * Guard that handles OAuth2 authentication for different API domains (YouTube, Spotify)
+ * Interceptor that handles OAuth2 authentication for different API domains (YouTube, Spotify)
  * Validates access tokens and handles token refresh using authorization codes
  */
 @Injectable()
-export class OAuthGuard implements CanActivate {
+export class OAuthInterceptor implements NestInterceptor {
   constructor(
     private readonly reflector: Reflector,
     private readonly googleAuthService: GoogleAuthService,
@@ -25,12 +29,15 @@ export class OAuthGuard implements CanActivate {
   ) {}
 
   /**
-   * Validates the request and handles OAuth2 authentication
+   * Intercepts the request and handles OAuth2 authentication
    * @param context - Execution context containing the request information
-   * @returns Promise resolving to boolean indicating if the request is authorized
-   * @throws UnauthorizedException when token retrieval fails
+   * @param next - Call handler to continue request processing
+   * @returns Observable of the response
    */
-  async canActivate(context: ExecutionContext): Promise<boolean> {
+  async intercept(
+    context: ExecutionContext,
+    next: CallHandler,
+  ): Promise<Observable<any>> {
     const gqlContext = GqlExecutionContext.create(context);
     const ctx = gqlContext.getContext<GqlContext>();
     const apiDomain = this.reflector.get<ApiDomain>(
@@ -38,17 +45,32 @@ export class OAuthGuard implements CanActivate {
       context.getHandler(),
     );
 
-    if (!apiDomain) return true;
+    if (!apiDomain) {
+      return next.handle();
+    }
 
     const accessToken = this.extractAccessToken(ctx.req, apiDomain);
     const userId = ctx.req.user?.id;
     const authCode = gqlContext.getArgs().authorizationCode;
 
-    console.log('///////////////accessToken', accessToken);
-    console.log('///////////////authCode', authCode);
-    console.log('///////////////userId', userId);
+    if (accessToken) {
+      ctx.req.api_accessToken = accessToken;
+      return next.handle();
+    }
 
-    if (!accessToken && authCode) {
+    if (userId) {
+      try {
+        const authResponse = await this.refreshAccessToken(apiDomain, userId);
+        this.setAccessTokenToContext(ctx, apiDomain, authResponse.access_token);
+        return next.handle();
+      } catch (error) {
+        if (!(error instanceof OAuthorizationError)) {
+          throw error;
+        }
+      }
+    }
+
+    if (authCode) {
       try {
         const authResponse = await this.getNewToken(
           apiDomain,
@@ -56,23 +78,15 @@ export class OAuthGuard implements CanActivate {
           userId,
         );
         this.setAccessTokenToContext(ctx, apiDomain, authResponse.access_token);
-        return true;
+        return next.handle();
       } catch (error) {
-        throw new UnauthorizedException('Failed to get access token', {
-          cause: error,
-        });
+        ctx.req.needsAuthUrl = true;
       }
-    }
-    if (!accessToken && !authCode && userId) {
-      try {
-        const authResponse = await this.refreshAccessToken(apiDomain, userId);
-        this.setAccessTokenToContext(ctx, apiDomain, authResponse.access_token);
-        return true;
-      } catch (error) {}
+    } else {
+      ctx.req.needsAuthUrl = true;
     }
 
-    ctx.req.api_accessToken = accessToken;
-    return true;
+    return next.handle();
   }
 
   /**
@@ -137,6 +151,7 @@ export class OAuthGuard implements CanActivate {
     accessToken: string,
   ) {
     ctx.req.api_accessToken = accessToken;
+    ctx.req.needsAuthUrl = false;
     ctx.res.cookie(`${apiDomain}_access_token`, accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

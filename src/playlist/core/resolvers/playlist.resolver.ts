@@ -19,8 +19,6 @@ import {
 import { CurrentUser } from 'src/global/decorators/current-user';
 import {
   ForbiddenException,
-  UseGuards,
-  UnauthorizedException,
   Inject,
   BadRequestException,
 } from '@nestjs/common';
@@ -31,11 +29,12 @@ import { Auth, RequireOAuth } from 'src/global/decorators/auth.decorator';
 import { ApiDomain } from 'src/auth/common/enums/api-domain.enum';
 import { AuthLevel } from 'src/auth/common/enums/auth-level.enum';
 import { GoogleAuthService } from 'src/auth/providers/google/google-auth.service';
-import { OAuthGuard } from 'src/auth/core/guards/oauth.guard';
 import { GqlContext } from 'src/auth/common/interfaces/context.interface';
 import { SpotifyAuthService } from 'src/auth/providers/spotify/spotify-auth.service';
-import { OAuth2Interceptor } from 'src/auth/core/interceptor/oauth2.interceptor';
 import { UseInterceptors } from '@nestjs/common';
+import { OAuthInterceptor } from 'src/auth/core/interceptors/oauth.interceptor';
+import { PlatformError } from 'src/playlist/common/errors/platform.errors';
+import { OAuthErrorInterceptor } from 'src/auth/core/interceptors/oauth-error.interceptor';
 
 @Resolver(() => Playlist)
 export class PlaylistResolver {
@@ -123,6 +122,7 @@ export class PlaylistResolver {
     @Args('id', { type: () => Int }) id: number,
     @Info() info: GraphQLResolveInfo,
   ) {
+    console.log('///////////////findOne called');
     const selections = info.fieldNodes[0].selectionSet?.selections || [];
     const playlistFields = new Set<string>();
 
@@ -166,34 +166,21 @@ export class PlaylistResolver {
    * 3. if success, return ConvertedPlaylist
    */
   @Auth(AuthLevel.OPTIONAL)
-  @UseGuards(OAuthGuard)
   @RequireOAuth(ApiDomain.SPOTIFY)
-  @UseInterceptors(OAuth2Interceptor)
+  @UseInterceptors(OAuthInterceptor, OAuthErrorInterceptor)
   @Mutation(() => ConvertPlaylistResponse)
   async convertToSpotifyPlaylist(
-    @Context() ctx: any,
+    @Context() ctx: GqlContext,
     @CurrentUser() user: UserInput,
     @Args('listJSON', { type: () => [PlaylistJSON] })
     listJSON: PlaylistJSON[],
-    @Args('authorizationCode', { type: () => String, nullable: true })
-    authorizationCode?: string,
     @Args('state', { type: () => String, nullable: true })
     state?: string,
-  ) {
+    @Args('authorizationCode', { type: () => String, nullable: true })
+    authorizationCode?: string,
+  ): Promise<ConvertedPlaylist | AuthRequiredResponse> {
     try {
-      const apiAccessToken = ctx.req.api_accessToken;
-
-      if (!apiAccessToken && !authorizationCode) {
-        throw new UnauthorizedException();
-      }
-
-      return await this.playlistService.convertToSpotifyPlaylist(
-        user?.id || null,
-        apiAccessToken,
-        listJSON,
-      );
-    } catch (error) {
-      if (error instanceof UnauthorizedException) {
+      if (ctx.req.needsAuthUrl) {
         return {
           needsAuth: true,
           authUrl: this.spotifyAuthService.getAuthUrl({
@@ -201,6 +188,19 @@ export class PlaylistResolver {
           }),
           apiDomain: ApiDomain.SPOTIFY,
         };
+      }
+
+      const apiAccessToken = ctx.req.api_accessToken;
+
+      return await this.playlistService.convertToSpotifyPlaylist(
+        user?.id || null,
+        apiAccessToken,
+        listJSON,
+      );
+    } catch (error) {
+      if (error instanceof PlatformError) {
+        console.log('///////////////PlatformError 처리', error.message);
+        throw new BadRequestException(error.message);
       }
       throw error;
     }
@@ -216,25 +216,29 @@ export class PlaylistResolver {
    * 3. if success, return ConvertedPlaylist
    */
   @Auth(AuthLevel.OPTIONAL)
-  @UseGuards(OAuthGuard)
   @RequireOAuth(ApiDomain.YOUTUBE)
-  @UseInterceptors(OAuth2Interceptor)
+  @UseInterceptors(OAuthInterceptor, OAuthErrorInterceptor)
   @Mutation(() => ConvertPlaylistResponse)
   async convertToYoutubePlaylist(
     @Context() ctx: GqlContext,
     @CurrentUser() user: UserInput,
     @Args('listJSON', { type: () => [PlaylistJSON] }) listJSON: PlaylistJSON[],
-    @Args('authorizationCode', { type: () => String, nullable: true })
-    authorizationCode?: string,
     @Args('state', { type: () => String, nullable: true })
     state?: string,
+    @Args('authorizationCode', { type: () => String, nullable: true })
+    authorizationCode?: string,
   ): Promise<ConvertedPlaylist | AuthRequiredResponse> {
+    if (ctx.req.needsAuthUrl) {
+      return {
+        needsAuth: true,
+        authUrl: this.googleAuthService.getAuthUrl({
+          state: state,
+        }),
+        apiDomain: ApiDomain.YOUTUBE,
+      };
+    }
     try {
       const apiAccessToken = ctx.req.api_accessToken;
-
-      if (!apiAccessToken && !authorizationCode) {
-        throw new UnauthorizedException();
-      }
 
       return await this.playlistService.convertToYoutubePlaylist(
         user?.id || null,
@@ -242,14 +246,8 @@ export class PlaylistResolver {
         listJSON,
       );
     } catch (error) {
-      if (error instanceof UnauthorizedException) {
-        return {
-          needsAuth: true,
-          authUrl: this.googleAuthService.getAuthUrl({
-            state: state,
-          }),
-          apiDomain: ApiDomain.YOUTUBE,
-        };
+      if (error instanceof PlatformError) {
+        throw new BadRequestException(error.message);
       }
       throw error;
     }

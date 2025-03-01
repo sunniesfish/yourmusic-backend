@@ -8,10 +8,3 @@ export class PlatformError extends Error {
     this.name = 'PlatformError';
   }
 }
-
-export class PlatformAuthError extends PlatformError {
-  constructor(message: string) {
-    super(message, 'AUTH_ERROR', 401);
-    this.name = 'PlatformAuthError';
-  }
-}

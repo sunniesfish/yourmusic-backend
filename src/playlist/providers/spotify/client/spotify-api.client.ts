@@ -3,10 +3,8 @@ import { PlatformResponse } from 'src/playlist/common/interfaces/platform.interf
 import { createSpotifyApiConfig } from './spotify.config';
 import ApiRateLimiter from '@sunniesfish/api-rate-limiter';
 import { ConfigService } from '@nestjs/config';
-import {
-  PlatformAuthError,
-  PlatformError,
-} from 'src/playlist/common/errors/platform.errors';
+import { PlatformError } from 'src/playlist/common/errors/platform.errors';
+import { OAuthorizationError } from 'src/auth/common/errors/oauth.errors';
 
 interface SpotifyPlaylistResponse {
   id: string;
@@ -65,7 +63,7 @@ export class SpotifyApiClient {
       return this.makeRequest<T>(userId, accessToken, url, options);
     }
     if (response.status === 401) {
-      throw new PlatformAuthError('Failed to refresh access token');
+      throw new OAuthorizationError('Failed to refresh access token');
     }
 
     const data: PlatformResponse<T> = await response.json();

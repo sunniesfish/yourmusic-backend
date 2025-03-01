@@ -1,10 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import {
-  AuthorizationError,
-  TokenError,
-} from '../../common/errors/oauth.errors';
+import { OAuthorizationError } from '../../common/errors/oauth.errors';
 import {
   OAuth2AuthResponse,
   OAuth2TokenResponse,
@@ -99,13 +96,8 @@ export class SpotifyAuthService extends OAuth2Service {
       where: { userId },
     });
 
-    if (!credentials.refreshToken) {
-      return {
-        access_token: null,
-        token_type: null,
-        expires_in: null,
-        refresh_token: null,
-      };
+    if (!credentials) {
+      throw new OAuthorizationError('Refresh token not found');
     }
 
     const params = new URLSearchParams({
@@ -126,7 +118,9 @@ export class SpotifyAuthService extends OAuth2Service {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new TokenError(error.error?.message || 'Token refresh failed');
+      throw new OAuthorizationError(
+        error.error?.message || 'Token refresh failed',
+      );
     }
 
     const newCredentials = await response.json();

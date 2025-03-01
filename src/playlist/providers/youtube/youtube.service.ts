@@ -8,8 +8,7 @@ import { GoogleAuthService } from 'src/auth/providers/google/google-auth.service
 import { YouTubeConfigService } from './client/youtubeConfig';
 import { YouTubeConfig } from './client/youtubeConfig';
 import { YouTubeApiClient } from './client/youtube-api.client';
-import { PlatformAuthError } from '../../common/errors/platform.errors';
-
+import { OAuthenticationError } from 'src/auth/common/errors/oauth.errors';
 @Injectable()
 export class YouTubeService {
   private config: YouTubeConfig;
@@ -49,7 +48,7 @@ export class YouTubeService {
       console.log('Error full details:', error);
 
       if (error.message?.includes('invalid_token')) {
-        throw new PlatformAuthError('Invalid token');
+        throw new OAuthenticationError('Invalid token');
       }
       throw new Error(`YouTube operation failed: ${error.message}`);
     }
@@ -88,10 +87,9 @@ export class YouTubeService {
         playlistUrl: `https://www.youtube.com/playlist?list=${playlistId}`,
       };
     } catch (error) {
-      if (error instanceof PlatformAuthError) {
+      if (error) {
         throw error;
       }
-      throw new Error(`Playlist conversion failed: ${error.message}`);
     }
   }
 
