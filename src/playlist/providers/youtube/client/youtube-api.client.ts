@@ -5,6 +5,8 @@ import { YouTubeConfig, YouTubeConfigService } from './youtubeConfig';
 import { OAuth2Client } from 'google-auth-library';
 import { PlatformError } from 'src/playlist/common/errors/platform.errors';
 import { OAuthorizationError } from 'src/auth/common/errors/oauth.errors';
+import { PlatformResponse } from 'src/playlist/common/interfaces/platform.interface';
+
 interface YouTubePlaylistResponse {
   id: string;
   snippet: {
@@ -62,24 +64,27 @@ export class YouTubeApiClient {
         },
       });
 
-      const responseData = await response.json();
+      const data: PlatformResponse<T> = await response.json();
+
+      console.log(
+        'Response headers:',
+        Object.fromEntries([...response.headers.entries()]),
+      );
 
       if (response.status === 429) {
         const retryAfter = parseInt(response.headers.get('Retry-After') || '1');
         await new Promise((resolve) => setTimeout(resolve, retryAfter * 1000));
         return this.makeRequest<T>(oauth2Client, url, options);
       }
-      if (response.status === 401) {
+      if (response.status === 401 || response.status === 403) {
         throw new OAuthorizationError('Failed to refresh access token');
-      }
-      if (!response.ok) {
-        console.log('responseData:', responseData);
+      } else if (!response.ok) {
         throw new PlatformError(
-          `YouTube API Error: ${responseData.error?.message || response.statusText}`,
+          `YouTube API Error: ${data.error?.message || response.statusText}`,
         );
       }
 
-      return responseData as T;
+      return data as T;
     } catch (error) {
       throw error;
     }
@@ -89,7 +94,7 @@ export class YouTubeApiClient {
     oauth2Client: OAuth2Client,
     name: string,
   ): Promise<string> {
-    console.log('=====||=====createPlaylist=====||=====');
+    console.log('=====||=====Playlist created====||=====');
     return this.apiRateLimiter.addRequest(async () => {
       const data = await this.makeRequest<YouTubePlaylistResponse>(
         oauth2Client,
@@ -104,8 +109,6 @@ export class YouTubeApiClient {
           }),
         },
       );
-      console.log('createPlaylist data:', data);
-      console.log('====================================');
       return data.id;
     });
   }
@@ -121,7 +124,11 @@ export class YouTubeApiClient {
         oauth2Client,
         `${this.config.baseUrl}/search?part=snippet&type=video&maxResults=1&q=${encodedQuery}&fields=items(id/videoId)`,
       );
-      console.log('searchVideo data:', data);
+      console.log('searchVideo data:', data.items);
+      console.log('.');
+      console.log('.');
+      console.log('.');
+      console.log('.');
       console.log('====================================');
 
       return data?.items[0]?.id?.videoId || null;
@@ -134,6 +141,7 @@ export class YouTubeApiClient {
     videoId: string,
   ): Promise<void> {
     return this.apiRateLimiter.addRequest(async () => {
+      console.log('=====||=====addToPlaylist=====||=====');
       const data = await this.makeRequest(
         oauth2Client,
         `${this.config.baseUrl}/playlistItems?part=snippet`,
@@ -151,6 +159,9 @@ export class YouTubeApiClient {
         },
       );
       console.log('addToPlaylist data:', data);
+      console.log('.');
+      console.log('.');
+      console.log('.');
       console.log('====================================');
     });
   }

@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PlatformResponse } from 'src/playlist/common/interfaces/platform.interface';
 import { createSpotifyApiConfig } from './spotify.config';
 import ApiRateLimiter from '@sunniesfish/api-rate-limiter';
 import { ConfigService } from '@nestjs/config';
 import { PlatformError } from 'src/playlist/common/errors/platform.errors';
 import { OAuthorizationError } from 'src/auth/common/errors/oauth.errors';
+import { PlaylistJSON } from 'src/playlist/common/dto/playlists.dto';
 
 interface SpotifyPlaylistResponse {
   id: string;
@@ -55,6 +56,7 @@ export class SpotifyApiClient {
         ...options.headers,
       },
     });
+    const data: PlatformResponse<T> = await response.json();
 
     console.log('makeRequest response', response);
     if (response.status === 429) {
@@ -62,13 +64,9 @@ export class SpotifyApiClient {
       await new Promise((resolve) => setTimeout(resolve, retryAfter * 1000));
       return this.makeRequest<T>(userId, accessToken, url, options);
     }
-    if (response.status === 401) {
+    if (response.status === 401 || response.status === 403) {
       throw new OAuthorizationError('Failed to refresh access token');
-    }
-
-    const data: PlatformResponse<T> = await response.json();
-
-    if (!response.ok) {
+    } else if (!response.ok) {
       throw new PlatformError(
         `Spotify API Error: ${data.error?.message || response.statusText}`,
       );
@@ -166,5 +164,49 @@ export class SpotifyApiClient {
         console.log('addSongsToPlaylist', data);
       });
     }
+  }
+
+  async searchPlaylist(playlistId: string) {
+    const clientId = process.env.SPOTIFY_CLIENT_ID;
+    const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+    const authString = Buffer.from(`${clientId}:${clientSecret}`).toString(
+      'base64',
+    );
+
+    const response = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${authString}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: 'grant_type=client_credentials',
+    });
+    if (!response.ok) {
+      new BadRequestException();
+    }
+
+    const authData = await response.json();
+
+    return this.apiRateLimiter.addRequest(async () => {
+      const data: any = await this.makeRequest(
+        null,
+        authData.access_token,
+        `${this.config.apiEndpoint}/playlists/${playlistId}/tracks`,
+      );
+
+      const arrayData: PlaylistJSON[] = data.tracks.items.map((item) => {
+        const track = item.track;
+        const artists = track.artists
+          .map((artist: any) => artist.name)
+          .join(', ');
+        return {
+          title: track.name,
+          artist: artists,
+          album: track.album.name,
+          thumbnail: track.album.images?.[0]?.url || null,
+        };
+      });
+      return arrayData;
+    });
   }
 }

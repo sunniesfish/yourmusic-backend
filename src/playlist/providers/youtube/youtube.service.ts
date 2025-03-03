@@ -44,13 +44,7 @@ export class YouTubeService {
 
       return await operation(oauth2Client);
     } catch (error) {
-      console.log('=== Error Debug Info ===');
-      console.log('Error full details:', error);
-
-      if (error.message?.includes('invalid_token')) {
-        throw new OAuthenticationError('Invalid token');
-      }
-      throw new Error(`YouTube operation failed: ${error.message}`);
+      throw error;
     }
   }
 

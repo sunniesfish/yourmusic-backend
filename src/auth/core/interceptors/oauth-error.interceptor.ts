@@ -56,6 +56,7 @@ export class OAuthErrorInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       catchError((error) => {
+        console.log('OAuthErrorInterceptor catchError', error);
         if (
           !(error instanceof OAuthenticationError) &&
           !(error instanceof OAuthorizationError)
@@ -81,6 +82,7 @@ export class OAuthErrorInterceptor implements NestInterceptor {
 
         if (error instanceof OAuthenticationError) {
           if (userId) {
+            console.log('OAuthErrorInterceptor OAuthenticationError', userId);
             const key = `${userId}:${apiDomain}`;
             if (!this.refreshAttempts.has(key)) {
               this.refreshAttempts.set(key, { count: 0, inProgress: false });
@@ -105,6 +107,7 @@ export class OAuthErrorInterceptor implements NestInterceptor {
 
             return from(this.refreshAccessToken(apiDomain, userId)).pipe(
               tap((response) => {
+                console.log('OAuthErrorInterceptor tap', response);
                 this.setAccessTokenToContext(
                   ctx,
                   apiDomain,
@@ -119,6 +122,7 @@ export class OAuthErrorInterceptor implements NestInterceptor {
 
               switchMap(() => next.handle()),
               catchError((refreshError) => {
+                console.log('OAuthErrorInterceptor catchError', refreshError);
                 const currentAttempt = this.refreshAttempts.get(key);
                 if (currentAttempt) {
                   currentAttempt.inProgress = false;
@@ -141,7 +145,9 @@ export class OAuthErrorInterceptor implements NestInterceptor {
 
   private async refreshAccessToken(apiDomain: ApiDomain, userId: string) {
     if (apiDomain === ApiDomain.YOUTUBE) {
-      return await this.googleAuthService.refreshAccessToken(userId);
+      const response = await this.googleAuthService.refreshAccessToken(userId);
+      console.log('OAuthErrorInterceptor refreshAccessToken', response);
+      return response;
     }
     if (apiDomain === ApiDomain.SPOTIFY) {
       return await this.spotifyAuthService.refreshAccessToken(userId);

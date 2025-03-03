@@ -228,16 +228,19 @@ export class PlaylistResolver {
     @Args('authorizationCode', { type: () => String, nullable: true })
     authorizationCode?: string,
   ): Promise<ConvertedPlaylist | AuthRequiredResponse> {
-    if (ctx.req.needsAuthUrl) {
-      return {
-        needsAuth: true,
-        authUrl: this.googleAuthService.getAuthUrl({
-          state: state,
-        }),
-        apiDomain: ApiDomain.YOUTUBE,
-      };
-    }
+    console.log('///////////////convertToYoutubePlaylist called');
     try {
+      if (ctx.req.needsAuthUrl) {
+        console.log('///////////////needsAuthUrl');
+        return {
+          needsAuth: true,
+          authUrl: this.googleAuthService.getAuthUrl({
+            state: state,
+          }),
+          apiDomain: ApiDomain.YOUTUBE,
+        };
+      }
+      console.log('///////////////no needsAuthUrl');
       const apiAccessToken = ctx.req.api_accessToken;
 
       return await this.playlistService.convertToYoutubePlaylist(
