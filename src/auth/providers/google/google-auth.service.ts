@@ -126,6 +126,10 @@ export class GoogleAuthService extends OAuth2Service {
     const { credentials: newCredentials } =
       await oauth2Client.refreshAccessToken();
 
+    if (!newCredentials) {
+      throw new OAuthorizationError('Failed to refresh access token');
+    }
+
     await this.youtubeCredentialsRepository.update(userId, {
       refreshToken: newCredentials.refresh_token,
       expiryDate: newCredentials.expiry_date,

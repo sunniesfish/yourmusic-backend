@@ -76,8 +76,8 @@ export class OAuthErrorInterceptor implements NestInterceptor {
 
         if (error instanceof OAuthorizationError) {
           ctx.req.needsAuthUrl = true;
-
-          return next.handle();
+          this.redirectToOriginalUrl(context, ctx);
+          return of(null);
         }
 
         if (error instanceof OAuthenticationError) {
@@ -93,7 +93,8 @@ export class OAuthErrorInterceptor implements NestInterceptor {
             if (attempt.count >= this.MAX_REFRESH_ATTEMPTS) {
               ctx.req.needsAuthUrl = true;
               this.refreshAttempts.delete(key);
-              return next.handle();
+              this.redirectToOriginalUrl(context, ctx);
+              return of(null);
             }
 
             if (attempt.inProgress) {
@@ -120,7 +121,10 @@ export class OAuthErrorInterceptor implements NestInterceptor {
                 }
               }),
 
-              switchMap(() => next.handle()),
+              switchMap(() => {
+                this.redirectToOriginalUrl(context, ctx);
+                return of(null);
+              }),
               catchError((refreshError) => {
                 console.log('OAuthErrorInterceptor catchError', refreshError);
                 const currentAttempt = this.refreshAttempts.get(key);
@@ -129,18 +133,24 @@ export class OAuthErrorInterceptor implements NestInterceptor {
                 }
 
                 ctx.req.needsAuthUrl = true;
-                return next.handle();
+                this.redirectToOriginalUrl(context, ctx);
+                return of(null);
               }),
             );
           } else {
             ctx.req.needsAuthUrl = true;
-            return next.handle();
+            this.redirectToOriginalUrl(context, ctx);
+            return of(null);
           }
         }
 
         return throwError(() => error);
       }),
     );
+  }
+
+  private redirectToOriginalUrl(context: ExecutionContext, ctx: GqlContext) {
+    context.switchToHttp().getRequest().res.redirect(ctx.req.originalUrl);
   }
 
   private async refreshAccessToken(apiDomain: ApiDomain, userId: string) {
