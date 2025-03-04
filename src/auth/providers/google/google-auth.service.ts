@@ -112,34 +112,34 @@ export class GoogleAuthService extends OAuth2Service {
    */
   async refreshAccessToken(userId: string): Promise<OAuth2TokenResponse> {
     const oauth2Client = this.createOAuthClient();
-    const credentials = await this.youtubeCredentialsRepository.findOne({
-      where: { userId },
-    });
+    try {
+      const credentials = await this.youtubeCredentialsRepository.findOne({
+        where: { userId },
+      });
 
-    if (!credentials) {
-      throw new OAuthorizationError('Refresh token not found');
-    }
+      if (!credentials) {
+        throw new OAuthorizationError('Refresh token not found');
+      }
 
-    oauth2Client.setCredentials({
-      refresh_token: credentials.refreshToken,
-    });
-    const { credentials: newCredentials } =
-      await oauth2Client.refreshAccessToken();
+      oauth2Client.setCredentials({
+        refresh_token: credentials.refreshToken,
+      });
+      const { credentials: newCredentials } =
+        await oauth2Client.refreshAccessToken();
 
-    if (!newCredentials) {
+      await this.youtubeCredentialsRepository.update(userId, {
+        refreshToken: newCredentials.refresh_token,
+        expiryDate: newCredentials.expiry_date,
+      });
+      return {
+        access_token: newCredentials.access_token,
+        token_type: newCredentials.token_type,
+        expires_in: newCredentials.expiry_date,
+        refresh_token: newCredentials.refresh_token,
+      };
+    } catch (error) {
       throw new OAuthorizationError('Failed to refresh access token');
     }
-
-    await this.youtubeCredentialsRepository.update(userId, {
-      refreshToken: newCredentials.refresh_token,
-      expiryDate: newCredentials.expiry_date,
-    });
-    return {
-      access_token: newCredentials.access_token,
-      token_type: newCredentials.token_type,
-      expires_in: newCredentials.expiry_date,
-      refresh_token: newCredentials.refresh_token,
-    };
   }
 
   /**

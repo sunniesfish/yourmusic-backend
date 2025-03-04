@@ -8,7 +8,7 @@ import { GoogleAuthService } from 'src/auth/providers/google/google-auth.service
 import { YouTubeConfigService } from './client/youtubeConfig';
 import { YouTubeConfig } from './client/youtubeConfig';
 import { YouTubeApiClient } from './client/youtube-api.client';
-import { OAuthenticationError } from 'src/auth/common/errors/oauth.errors';
+
 @Injectable()
 export class YouTubeService {
   private config: YouTubeConfig;
@@ -32,10 +32,6 @@ export class YouTubeService {
     operation: (oauth2Client: any) => Promise<T>,
   ): Promise<T> {
     try {
-      console.log('=== Auth Debug Info ===');
-      console.log('userId:', userId);
-      console.log('accessToken:', accessToken?.substring(0, 10) + '...');
-
       const oauth2Client = await this.googleAuthService.getOAuthClient(
         userId,
         accessToken,
@@ -64,8 +60,6 @@ export class YouTubeService {
           );
         },
       );
-      console.log('=====||=====playlistId=====||=====');
-      console.log(playlistId);
 
       await this.processSongsInBatches(
         userId,
@@ -93,7 +87,6 @@ export class YouTubeService {
     songs: PlaylistJSON[],
     accessToken: string,
   ): Promise<void> {
-    console.log('=====||=====processSongsInBatches=====||=====');
     const batchSize = this.config.batchSize;
     for (let i = 0; i < songs.length; i += batchSize) {
       const batch = songs.slice(i, i + batchSize);
@@ -111,7 +104,6 @@ export class YouTubeService {
     song: PlaylistJSON,
     accessToken: string,
   ): Promise<void> {
-    console.log('=========processOneSong=========');
     try {
       const searchQuery = `${song.title} ${song.artist}`;
 
@@ -122,7 +114,6 @@ export class YouTubeService {
           return this.youtubeApiClient.searchVideo(oauth2Client, searchQuery);
         },
       );
-      console.log('videoId:', videoId);
       if (videoId) {
         await this.executeWithAuth(
           userId,
@@ -146,7 +137,6 @@ export class YouTubeService {
   }
 
   async readYoutubePlaylist(link: string): Promise<PlaylistJSON[]> {
-    console.log('//////////readYoutubePlaylist');
     return this.scraperService.scrape(
       link,
       'ytd-playlist-video-renderer',

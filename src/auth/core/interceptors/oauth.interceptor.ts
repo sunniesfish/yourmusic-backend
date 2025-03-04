@@ -65,6 +65,11 @@ export class OAuthInterceptor implements NestInterceptor {
         return next.handle();
       } catch (error) {
         if (!(error instanceof OAuthorizationError)) {
+          console.log('**error.message', error.message);
+          console.log('**error.status', error.status);
+          console.log('**error.response', error.response);
+          console.log('**error.stack', error.stack);
+
           throw error;
         }
       }

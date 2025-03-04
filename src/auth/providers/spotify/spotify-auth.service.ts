@@ -92,49 +92,53 @@ export class SpotifyAuthService extends OAuth2Service {
    * @returns OAuth2TokenResponse
    */
   async refreshAccessToken(userId: string): Promise<OAuth2TokenResponse> {
-    const credentials = await this.spotifyTokenRepository.findOne({
-      where: { userId },
-    });
+    try {
+      const credentials = await this.spotifyTokenRepository.findOne({
+        where: { userId },
+      });
 
-    if (!credentials) {
-      throw new OAuthorizationError('Refresh token not found');
+      if (!credentials) {
+        throw new OAuthorizationError('Refresh token not found');
+      }
+
+      const params = new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: credentials.refreshToken,
+      });
+
+      const response = await fetch(this.config.tokenEndpoint, {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${Buffer.from(
+            `${this.config.clientId}:${this.config.clientSecret}`,
+          ).toString('base64')}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: params,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new OAuthorizationError(
+          error.error?.message || 'Token refresh failed',
+        );
+      }
+
+      const newCredentials = await response.json();
+
+      await this.spotifyTokenRepository.update(userId, {
+        refreshToken: newCredentials.refresh_token,
+      });
+
+      return {
+        access_token: newCredentials.access_token,
+        token_type: newCredentials.token_type,
+        expires_in: newCredentials.expires_in,
+        refresh_token: newCredentials.refresh_token,
+      };
+    } catch (error) {
+      throw new OAuthorizationError('Failed to refresh access token');
     }
-
-    const params = new URLSearchParams({
-      grant_type: 'refresh_token',
-      refresh_token: credentials.refreshToken,
-    });
-
-    const response = await fetch(this.config.tokenEndpoint, {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${Buffer.from(
-          `${this.config.clientId}:${this.config.clientSecret}`,
-        ).toString('base64')}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: params,
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new OAuthorizationError(
-        error.error?.message || 'Token refresh failed',
-      );
-    }
-
-    const newCredentials = await response.json();
-
-    await this.spotifyTokenRepository.update(userId, {
-      refreshToken: newCredentials.refresh_token,
-    });
-
-    return {
-      access_token: newCredentials.access_token,
-      token_type: newCredentials.token_type,
-      expires_in: newCredentials.expires_in,
-      refresh_token: newCredentials.refresh_token,
-    };
   }
 
   /**

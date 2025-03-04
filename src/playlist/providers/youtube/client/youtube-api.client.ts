@@ -42,8 +42,7 @@ export class YouTubeApiClient {
         maxQueueSize: this.config.apiLimitQueueSize,
       },
       (error) => {
-        console.error('YouTube API Rate Limiter Error:', error);
-        console.log('///////////////////////////////////////error:');
+        console.log('apiRateLimiter error', error);
       },
     );
   }
@@ -54,7 +53,6 @@ export class YouTubeApiClient {
     options: RequestInit = {},
   ): Promise<T> {
     try {
-      console.log('=====||=====makeRequest=====||=====');
       const response = await fetch(url, {
         ...options,
         headers: {
@@ -65,11 +63,6 @@ export class YouTubeApiClient {
       });
 
       const data: PlatformResponse<T> = await response.json();
-
-      console.log(
-        'Response headers:',
-        Object.fromEntries([...response.headers.entries()]),
-      );
 
       if (response.status === 429) {
         const retryAfter = parseInt(response.headers.get('Retry-After') || '1');
@@ -94,7 +87,6 @@ export class YouTubeApiClient {
     oauth2Client: OAuth2Client,
     name: string,
   ): Promise<string> {
-    console.log('=====||=====Playlist created====||=====');
     return this.apiRateLimiter.addRequest(async () => {
       const data = await this.makeRequest<YouTubePlaylistResponse>(
         oauth2Client,
@@ -118,18 +110,11 @@ export class YouTubeApiClient {
     query: string,
   ): Promise<string | null> {
     return this.apiRateLimiter.addRequest(async () => {
-      console.log('=====||=====searchVideo=====||=====');
       const encodedQuery = encodeURIComponent(query);
       const data = await this.makeRequest<YouTubeSearchResponse>(
         oauth2Client,
         `${this.config.baseUrl}/search?part=snippet&type=video&maxResults=1&q=${encodedQuery}&fields=items(id/videoId)`,
       );
-      console.log('searchVideo data:', data.items);
-      console.log('.');
-      console.log('.');
-      console.log('.');
-      console.log('.');
-      console.log('====================================');
 
       return data?.items[0]?.id?.videoId || null;
     });
@@ -141,8 +126,7 @@ export class YouTubeApiClient {
     videoId: string,
   ): Promise<void> {
     return this.apiRateLimiter.addRequest(async () => {
-      console.log('=====||=====addToPlaylist=====||=====');
-      const data = await this.makeRequest(
+      const data: any = await this.makeRequest(
         oauth2Client,
         `${this.config.baseUrl}/playlistItems?part=snippet`,
         {
@@ -158,11 +142,7 @@ export class YouTubeApiClient {
           }),
         },
       );
-      console.log('addToPlaylist data:', data);
-      console.log('.');
-      console.log('.');
-      console.log('.');
-      console.log('====================================');
+      console.log('addToPlaylist data:', data.snippet.title);
     });
   }
 }
