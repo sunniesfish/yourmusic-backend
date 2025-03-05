@@ -8,7 +8,7 @@ import { GoogleAuthService } from 'src/auth/providers/google/google-auth.service
 import { YouTubeConfigService } from './client/youtubeConfig';
 import { YouTubeConfig } from './client/youtubeConfig';
 import { YouTubeApiClient } from './client/youtube-api.client';
-
+import { OAuthenticationError } from 'src/auth/common/errors/oauth.errors';
 @Injectable()
 export class YouTubeService {
   private config: YouTubeConfig;
@@ -31,17 +31,12 @@ export class YouTubeService {
     accessToken: string,
     operation: (oauth2Client: any) => Promise<T>,
   ): Promise<T> {
-    try {
-      const oauth2Client = await this.googleAuthService.getOAuthClient(
-        userId,
-        accessToken,
-        null,
-      );
-
-      return await operation(oauth2Client);
-    } catch (error) {
-      throw error;
-    }
+    const oauth2Client = await this.googleAuthService.getOAuthClient(
+      userId,
+      accessToken,
+      null,
+    );
+    return await operation(oauth2Client);
   }
 
   async convertToYoutubePlaylist(
@@ -49,53 +44,39 @@ export class YouTubeService {
     accessToken: string,
     playlistJSON: PlaylistJSON[],
   ): Promise<ConvertedPlaylist> {
-    try {
-      const playlistId = await this.executeWithAuth(
-        userId,
-        accessToken,
-        async (oauth2Client) => {
-          return this.youtubeApiClient.createPlaylist(
-            oauth2Client,
-            'New Playlist ' + new Date().toISOString(),
-          );
-        },
-      );
+    const playlistId = await this.executeWithAuth(
+      userId,
+      accessToken,
+      async (oauth2Client) => {
+        return this.youtubeApiClient.createPlaylist(
+          oauth2Client,
+          'New Playlist ' + new Date().toISOString(),
+        );
+      },
+    );
 
-      await this.processSongsInBatches(
-        userId,
-        playlistId,
-        playlistJSON,
-        accessToken,
-      );
-      return {
-        success: true,
-        message: 'Playlist converted successfully',
-        playlistId: playlistId,
-        playlistName: playlistJSON[0].title,
-        playlistUrl: `https://www.youtube.com/playlist?list=${playlistId}`,
-      };
-    } catch (error) {
-      if (error) {
-        throw error;
-      }
-    }
+    await this.processSongs(userId, playlistId, playlistJSON, accessToken);
+    return {
+      success: true,
+      message: 'Playlist converted successfully',
+      playlistId: playlistId,
+      playlistName: playlistJSON[0].title,
+      playlistUrl: `https://www.youtube.com/playlist?list=${playlistId}`,
+    };
   }
 
-  private async processSongsInBatches(
+  private async processSongs(
     userId: string,
     playlistId: string,
     songs: PlaylistJSON[],
     accessToken: string,
   ): Promise<void> {
-    const batchSize = this.config.batchSize;
-    for (let i = 0; i < songs.length; i += batchSize) {
-      const batch = songs.slice(i, i + batchSize);
-      await Promise.all(
-        batch.map((song) =>
-          this.processOneSong(userId, playlistId, song, accessToken),
-        ),
-      );
+    console.log('===== process songs =====');
+    for (let i = 0; i < songs.length; i++) {
+      console.log('processing song ' + (i + 1) + ' of ' + songs.length);
+      await this.processOneSong(userId, playlistId, songs[i], accessToken);
     }
+    console.log('===== process songs done =====');
   }
 
   private async processOneSong(
@@ -104,31 +85,25 @@ export class YouTubeService {
     song: PlaylistJSON,
     accessToken: string,
   ): Promise<void> {
-    try {
-      const searchQuery = `${song.title} ${song.artist}`;
-
-      const videoId = await this.executeWithAuth(
-        userId,
-        accessToken,
-        async (oauth2Client) => {
-          return this.youtubeApiClient.searchVideo(oauth2Client, searchQuery);
-        },
-      );
-      if (videoId) {
-        await this.executeWithAuth(
-          userId,
-          accessToken,
-          async (oauth2Client) => {
-            return this.youtubeApiClient.addToPlaylist(
-              oauth2Client,
-              playlistId,
-              videoId,
-            );
-          },
+    console.log('.');
+    console.log('.');
+    console.log('===== process one song ' + song.title + ' =====');
+    const searchQuery = `${song.title} ${song.artist}`;
+    const videoId = await this.executeWithAuth(
+      userId,
+      accessToken,
+      async (oauth2Client) => {
+        return this.youtubeApiClient.searchVideo(oauth2Client, searchQuery);
+      },
+    );
+    if (videoId) {
+      await this.executeWithAuth(userId, accessToken, async (oauth2Client) => {
+        return this.youtubeApiClient.addToPlaylist(
+          oauth2Client,
+          playlistId,
+          videoId,
         );
-      }
-    } catch (error) {
-      console.error(`Failed to process song: ${song.title}`, error);
+      });
     }
   }
 

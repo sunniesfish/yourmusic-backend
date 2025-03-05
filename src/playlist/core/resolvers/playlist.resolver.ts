@@ -35,9 +35,18 @@ import { UseInterceptors } from '@nestjs/common';
 import { OAuthInterceptor } from 'src/auth/core/interceptors/oauth.interceptor';
 import { PlatformError } from 'src/playlist/common/errors/platform.errors';
 import { OAuthErrorInterceptor } from 'src/auth/core/interceptors/oauth-error.interceptor';
-
+import {
+  OAuthenticationError,
+  OAuthorizationError,
+} from 'src/auth/common/errors/oauth.errors';
 @Resolver(() => Playlist)
 export class PlaylistResolver {
+  private readonly MAX_RETRY_ATTEMPTS = 3;
+  private retryAttempts = new Map<
+    string,
+    { count: number; inProgress: boolean }
+  >();
+
   constructor(
     @Inject()
     private readonly playlistService: PlaylistService,
@@ -105,8 +114,6 @@ export class PlaylistResolver {
       }
     });
 
-    console.log('playlistFields', playlistFields);
-
     return await this.playlistService.findAll(
       user.id,
       page,
@@ -122,7 +129,6 @@ export class PlaylistResolver {
     @Args('id', { type: () => Int }) id: number,
     @Info() info: GraphQLResolveInfo,
   ) {
-    console.log('///////////////findOne called');
     const selections = info.fieldNodes[0].selectionSet?.selections || [];
     const playlistFields = new Set<string>();
 
@@ -180,16 +186,6 @@ export class PlaylistResolver {
     authorizationCode?: string,
   ): Promise<ConvertedPlaylist | AuthRequiredResponse> {
     try {
-      if (ctx.req.needsAuthUrl) {
-        return {
-          needsAuth: true,
-          authUrl: this.spotifyAuthService.getAuthUrl({
-            state: state,
-          }),
-          apiDomain: ApiDomain.SPOTIFY,
-        };
-      }
-
       const apiAccessToken = ctx.req.api_accessToken;
 
       return await this.playlistService.convertToSpotifyPlaylist(
@@ -198,8 +194,42 @@ export class PlaylistResolver {
         listJSON,
       );
     } catch (error) {
+      if (error instanceof OAuthenticationError) {
+        if (!user?.id) {
+          throw new OAuthorizationError(error.message);
+        }
+        const key = `${user.id}:${ApiDomain.SPOTIFY}`;
+        if (!this.retryAttempts.has(key)) {
+          this.retryAttempts.set(key, { count: 0, inProgress: false });
+        }
+        const attempt = this.retryAttempts.get(key)!;
+        if (attempt.count >= this.MAX_RETRY_ATTEMPTS) {
+          throw new OAuthorizationError(error.message);
+        }
+
+        attempt.count += 1;
+        attempt.inProgress = true;
+
+        if (!attempt.inProgress) {
+          const oauthResponse =
+            await this.spotifyAuthService.refreshAccessToken(user.id);
+
+          this.setAccessTokenToContext(
+            ctx,
+            ApiDomain.SPOTIFY,
+            oauthResponse.access_token,
+          );
+
+          return this.convertToSpotifyPlaylist(
+            ctx,
+            user,
+            listJSON,
+            state,
+            authorizationCode,
+          );
+        }
+      }
       if (error instanceof PlatformError) {
-        console.log('///////////////PlatformError 처리', error.message);
         throw new BadRequestException(error.message);
       }
       throw error;
@@ -228,19 +258,7 @@ export class PlaylistResolver {
     @Args('authorizationCode', { type: () => String, nullable: true })
     authorizationCode?: string,
   ): Promise<ConvertedPlaylist | AuthRequiredResponse> {
-    console.log('///////////////convertToYoutubePlaylist called');
     try {
-      if (ctx.req.needsAuthUrl) {
-        console.log('///////////////needsAuthUrl');
-        return {
-          needsAuth: true,
-          authUrl: this.googleAuthService.getAuthUrl({
-            state: state,
-          }),
-          apiDomain: ApiDomain.YOUTUBE,
-        };
-      }
-      console.log('///////////////no needsAuthUrl');
       const apiAccessToken = ctx.req.api_accessToken;
 
       return await this.playlistService.convertToYoutubePlaylist(
@@ -249,10 +267,66 @@ export class PlaylistResolver {
         listJSON,
       );
     } catch (error) {
+      console.log('*****************CAUGHT IN RESOLVER');
+      if (error instanceof OAuthenticationError) {
+        if (!user?.id) {
+          throw new OAuthorizationError(error.message);
+        }
+        const key = `${user.id}:${ApiDomain.YOUTUBE}`;
+        if (!this.retryAttempts.has(key)) {
+          this.retryAttempts.set(key, { count: 0, inProgress: false });
+        }
+        const attempt = this.retryAttempts.get(key)!;
+        if (attempt.count >= this.MAX_RETRY_ATTEMPTS) {
+          throw new OAuthorizationError(error.message);
+        }
+
+        if (!attempt.inProgress) {
+          const oauthResponse = await this.googleAuthService.refreshAccessToken(
+            user.id,
+          );
+
+          this.setAccessTokenToContext(
+            ctx,
+            ApiDomain.YOUTUBE,
+            oauthResponse.access_token,
+          );
+
+          attempt.count += 1;
+          attempt.inProgress = true;
+
+          return this.convertToYoutubePlaylist(
+            ctx,
+            user,
+            listJSON,
+            state,
+            authorizationCode,
+          );
+        }
+      }
+
       if (error instanceof PlatformError) {
         throw new BadRequestException(error.message);
       }
-      throw error;
     }
+  }
+
+  private setAccessTokenToContext(
+    ctx: GqlContext,
+    apiDomain: ApiDomain,
+    accessToken: string,
+  ) {
+    ctx.req.api_accessToken = accessToken;
+    ctx.res.cookie(`${apiDomain}_access_token`, accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      domain:
+        process.env.NODE_ENV === 'production'
+          ? process.env.CORS_ORIGIN_PROD
+          : 'localhost',
+      path: '/',
+      maxAge: 24 * 60 * 60 * 1000,
+    });
   }
 }

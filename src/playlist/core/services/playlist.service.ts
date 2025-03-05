@@ -9,6 +9,7 @@ import { Playlist } from '../../entities/playlist.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { YouTubeService } from '../../providers/youtube/youtube.service';
 import { SpotifyService } from '../../providers/spotify/spotify.service';
+import { ApiDomain } from 'src/auth/common/enums/api-domain.enum';
 @Injectable()
 export class PlaylistService {
   constructor(
@@ -20,6 +21,8 @@ export class PlaylistService {
     private readonly youtubeService: YouTubeService,
     private readonly dataSource: DataSource,
   ) {}
+
+  //need to add retry with new accessToken
 
   async convertToSpotifyPlaylist(
     userId: string,

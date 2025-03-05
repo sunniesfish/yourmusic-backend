@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import ApiRateLimiter from '@sunniesfish/api-rate-limiter';
-import { GoogleAuthService } from 'src/auth/providers/google/google-auth.service';
 import { YouTubeConfig, YouTubeConfigService } from './youtubeConfig';
 import { OAuth2Client } from 'google-auth-library';
 import { PlatformError } from 'src/playlist/common/errors/platform.errors';
-import { OAuthorizationError } from 'src/auth/common/errors/oauth.errors';
+import {
+  OAuthenticationError,
+  OAuthorizationError,
+} from 'src/auth/common/errors/oauth.errors';
 import { PlatformResponse } from 'src/playlist/common/interfaces/platform.interface';
 
 interface YouTubePlaylistResponse {
@@ -30,10 +32,7 @@ export class YouTubeApiClient {
   private readonly apiRateLimiter: ApiRateLimiter<any>;
   private readonly config: YouTubeConfig;
 
-  constructor(
-    private readonly googleAuthService: GoogleAuthService,
-    private readonly configService: YouTubeConfigService,
-  ) {
+  constructor(private readonly configService: YouTubeConfigService) {
     this.config = configService.getConfig();
     this.apiRateLimiter = new ApiRateLimiter(
       {
@@ -52,35 +51,34 @@ export class YouTubeApiClient {
     url: string,
     options: RequestInit = {},
   ): Promise<T> {
-    try {
-      const response = await fetch(url, {
-        ...options,
-        headers: {
-          Authorization: `Bearer ${oauth2Client.credentials.access_token}`,
-          'Content-Type': 'application/json',
-          ...options.headers,
-        },
-      });
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${oauth2Client.credentials.access_token}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
 
-      const data: PlatformResponse<T> = await response.json();
-
-      if (response.status === 429) {
-        const retryAfter = parseInt(response.headers.get('Retry-After') || '1');
-        await new Promise((resolve) => setTimeout(resolve, retryAfter * 1000));
-        return this.makeRequest<T>(oauth2Client, url, options);
-      }
-      if (response.status === 401 || response.status === 403) {
-        throw new OAuthorizationError('Failed to refresh access token');
-      } else if (!response.ok) {
-        throw new PlatformError(
-          `YouTube API Error: ${data.error?.message || response.statusText}`,
-        );
-      }
-
-      return data as T;
-    } catch (error) {
-      throw error;
+    const data: PlatformResponse<T> = await response.json();
+    if (response.status === 401 || response.status === 403) {
+      throw new OAuthenticationError(
+        `YouTube API Authentication Error: ${data.error.message}`,
+      );
     }
+
+    if (response.status === 429 || response.status === 409) {
+      const retryAfter = parseInt(response.headers.get('Retry-After') || '1');
+      await new Promise((resolve) => setTimeout(resolve, retryAfter * 1000));
+      return this.makeRequest<T>(oauth2Client, url, options);
+    }
+
+    if (response.status >= 400) {
+      console.log('youtube api error', response);
+      throw new PlatformError(`YouTube API Error: ${data.error.message}`);
+    }
+
+    return data as T;
   }
 
   async createPlaylist(
@@ -115,6 +113,7 @@ export class YouTubeApiClient {
         oauth2Client,
         `${this.config.baseUrl}/search?part=snippet&type=video&maxResults=1&q=${encodedQuery}&fields=items(id/videoId)`,
       );
+      console.log('**searchVideo data:', data.items[0].id.videoId);
 
       return data?.items[0]?.id?.videoId || null;
     });
