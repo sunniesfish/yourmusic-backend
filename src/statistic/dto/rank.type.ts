@@ -2,7 +2,6 @@ import { ObjectType } from '@nestjs/graphql';
 
 import { Field } from '@nestjs/graphql';
 
-// Object 타입 정의
 @ObjectType('StatisticRank')
 export class RankType {
   @Field(() => String, { nullable: false })

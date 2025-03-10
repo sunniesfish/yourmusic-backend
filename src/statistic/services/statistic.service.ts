@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { MutateStatisticInput } from './dto/mutate-statistic.input';
+import { MutateStatisticInput } from '../dto/mutate-statistic.input';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Statistic } from './entities/statistic.entity';
+import { Statistic } from '../entities/statistic.entity';
 import { Repository } from 'typeorm';
 
 @Injectable()

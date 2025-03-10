@@ -49,13 +49,7 @@ export class PlaylistService {
         accessToken,
         playlistJSON,
       );
-    return {
-      success: true,
-      message: 'Playlist converted successfully',
-      playlistId: convertedPlaylist.playlistId,
-      playlistName: convertedPlaylist.playlistName,
-      playlistUrl: convertedPlaylist.playlistUrl,
-    };
+    return convertedPlaylist;
   }
 
   async read(link: string): Promise<PlaylistJSON[]> {
@@ -116,7 +110,6 @@ export class PlaylistService {
     const skip = (page - 1) * limit;
     const query = this.playlistRepository.createQueryBuilder('playlist');
 
-    // 요청된 필드만 선택
     if (fields.length > 0) {
       fields.forEach((field) => {
         if (field === 'id') query.addSelect('playlist.id');
@@ -126,7 +119,6 @@ export class PlaylistService {
         if (field === 'listJson') query.addSelect('playlist.listJson');
       });
     } else {
-      // 기본 필드 선택
       query.select([
         'playlist.id',
         'playlist.name',

@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 export interface YouTubeConfig {
-  apiKey: string;
   baseUrl: string;
   apiLimitPerSecond: number;
   apiLimitPerMinute: number;
@@ -16,22 +15,9 @@ export class YouTubeConfigService {
 }
 
 const youtubeConfig: YouTubeConfig = {
-  apiKey: process.env.YOUTUBE_API_KEY as string,
-  baseUrl: 'https://www.googleapis.com/youtube/v3',
-  apiLimitPerSecond:
-    process.env.NODE_ENV === 'production'
-      ? parseInt(process.env.YOUTUBE_API_LIMIT_PER_SECOND!)
-      : 2,
-  apiLimitPerMinute:
-    process.env.NODE_ENV === 'production'
-      ? parseInt(process.env.YOUTUBE_API_LIMIT_PER_MINUTE!)
-      : 100,
-  apiLimitQueueSize:
-    process.env.NODE_ENV === 'production'
-      ? parseInt(process.env.YOUTUBE_API_LIMIT_QUEUE_SIZE!)
-      : 1000,
-  batchSize:
-    process.env.NODE_ENV === 'production'
-      ? parseInt(process.env.YOUTUBE_BATCH_SIZE!)
-      : 10,
+  baseUrl: process.env.YOUTUBE_BASE_URL!,
+  apiLimitPerSecond: parseInt(process.env.YOUTUBE_API_LIMIT_PER_SECOND!),
+  apiLimitPerMinute: parseInt(process.env.YOUTUBE_API_LIMIT_PER_MINUTE!),
+  apiLimitQueueSize: parseInt(process.env.YOUTUBE_API_LIMIT_QUEUE_SIZE!),
+  batchSize: parseInt(process.env.YOUTUBE_BATCH_SIZE!),
 };

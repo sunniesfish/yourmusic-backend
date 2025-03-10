@@ -1,5 +1,5 @@
 import { Args, Info, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { UserService } from '../service/user.service';
+import { UserService } from '../services/user.service';
 import { User } from '../entities/user.entity';
 import { UpdateUserInput } from '../dto/update-user.input';
 import { FieldNode, GraphQLResolveInfo } from 'graphql';

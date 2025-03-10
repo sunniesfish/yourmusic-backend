@@ -3,10 +3,7 @@ import ApiRateLimiter from '@sunniesfish/api-rate-limiter';
 import { YouTubeConfig, YouTubeConfigService } from './youtubeConfig';
 import { OAuth2Client } from 'google-auth-library';
 import { PlatformError } from 'src/playlist/common/errors/platform.errors';
-import {
-  OAuthenticationError,
-  OAuthorizationError,
-} from 'src/auth/common/errors/oauth.errors';
+import { OAuthenticationError } from 'src/auth/common/errors/oauth.errors';
 import { PlatformResponse } from 'src/playlist/common/interfaces/platform.interface';
 
 interface YouTubePlaylistResponse {

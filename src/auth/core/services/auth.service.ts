@@ -14,7 +14,7 @@ import { ChangePasswordInput } from '../../common/dto/change-password.input';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { SignUpInput } from '../../common/dto/sign-up.input';
-import { UserService } from '../../../user/service/user.service';
+import { UserService } from '../../../user/services/user.service';
 
 @Injectable()
 export class AuthService {

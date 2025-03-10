@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { PlaylistJSON } from '../../common/dto/playlists.dto';
-import { ScraperService } from '../scraper/scraper.service';
+// import { ScraperService } from '../scraper/scraper.service';
 import { SpotifyApiClient } from './client/spotify-api.client';
 import { ConvertedPlaylist } from '../../common/dto/playlists.dto';
 
@@ -9,8 +9,8 @@ export class SpotifyService {
   constructor(
     @Inject()
     private readonly spotifyApiClient: SpotifyApiClient,
-    @Inject()
-    private readonly scraperService: ScraperService,
+    // @Inject()
+    // private readonly scraperService: ScraperService,
   ) {}
 
   isSpotifyUrl = (url: string): boolean => {

@@ -6,15 +6,14 @@ import {
 
 export abstract class OAuth2Service {
   /**
-   * OAuth2 인증 URL을 생성합니다.
-   * @param options - 인증 옵션
+   * create oauth2 auth url
+   * @param options
    */
   abstract getAuthUrl(options?: OAuth2AuthOptions): string;
 
   /**
-   * Authorization code를 사용하여 access token을 얻습니다.
-   * @param authResponse - 인증 응답 (code와 state 포함)
-   * @param userId - 사용자 ID
+   * @param authResponse - auth response (code and state included)
+   * @param userId - user id
    */
   abstract getToken(
     authResponse: OAuth2AuthResponse,
@@ -22,12 +21,12 @@ export abstract class OAuth2Service {
   ): Promise<OAuth2TokenResponse>;
 
   /**
-   * Access token을 갱신합니다.
+   * @param userId - user id
    */
   abstract refreshAccessToken(userId: string): Promise<OAuth2TokenResponse>;
 
   /**
-   * 랜덤 문자열을 생성합니다 (state 파라미터용).
+   * generate random string (for state parameter)
    */
   protected generateRandomString(length: number): string {
     const possible =
@@ -40,8 +39,7 @@ export abstract class OAuth2Service {
   }
 
   /**
-   * 사용자를 로그아웃합니다.
-   * @param userId - 사용자 ID
+   * @param userId - user id
    */
   abstract signOut(userId: string): Promise<void>;
 }

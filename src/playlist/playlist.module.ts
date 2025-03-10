@@ -7,8 +7,6 @@ import { YouTubeModule } from './providers/youtube/youtube.module';
 import { SpotifyModule } from './providers/spotify/spotify.module';
 import { ScraperModule } from './providers/scraper/scraper.module';
 import { AuthModule } from 'src/auth/auth.module';
-import { APP_FILTER } from '@nestjs/core';
-import { PlaylistExceptionFilter } from './core/filters/playlist-exception.filter';
 
 @Module({
   imports: [
@@ -18,14 +16,7 @@ import { PlaylistExceptionFilter } from './core/filters/playlist-exception.filte
     ScraperModule,
     AuthModule,
   ],
-  providers: [
-    PlaylistService,
-    PlaylistResolver,
-    {
-      provide: APP_FILTER,
-      useClass: PlaylistExceptionFilter,
-    },
-  ],
+  providers: [PlaylistService, PlaylistResolver],
   exports: [PlaylistService],
 })
 export class PlaylistModule {}

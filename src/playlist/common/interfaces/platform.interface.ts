@@ -7,17 +7,3 @@ export interface PlatformResponse<T> {
   items?: T[];
   id?: string;
 }
-
-export interface PlatformConfig {
-  apiEndpoint: string;
-  apiLimitPerSecond: number;
-  apiLimitPerMinute: number;
-  apiLimitQueueSize: number;
-  batchSize?: number;
-}
-
-export interface PlatformAuthConfig {
-  clientId: string;
-  clientSecret: string;
-  redirectUri: string;
-}

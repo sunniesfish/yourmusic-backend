@@ -6,11 +6,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use(cookieParser());
   const configService = app.get(ConfigService);
-
-  const isDevelopment = configService.get('NODE_ENV') === 'development';
-  const corsOrigin = isDevelopment
-    ? configService.get('CORS_ORIGIN_DEV')
-    : configService.get('CORS_ORIGIN_PROD');
+  const corsOrigin = configService.get('CORS_ORIGIN');
 
   app.enableCors({
     origin: corsOrigin,

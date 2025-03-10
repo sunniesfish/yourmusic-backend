@@ -1,7 +1,7 @@
 import { Resolver, Query, Mutation, Args, ID } from '@nestjs/graphql';
-import { StatisticService } from './statistic.service';
-import { Statistic } from './entities/statistic.entity';
-import { MutateStatisticInput } from './dto/mutate-statistic.input';
+import { StatisticService } from '../services/statistic.service';
+import { Statistic } from '../entities/statistic.entity';
+import { MutateStatisticInput } from '../dto/mutate-statistic.input';
 import { UserInput } from 'src/user/dto/user.input';
 import { CurrentUser } from 'src/global/decorators/current-user';
 import { ForbiddenException } from '@nestjs/common';

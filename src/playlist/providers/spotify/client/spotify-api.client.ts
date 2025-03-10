@@ -1,11 +1,11 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { PlatformResponse } from 'src/playlist/common/interfaces/platform.interface';
 import { createSpotifyApiConfig } from './spotify.config';
 import ApiRateLimiter from '@sunniesfish/api-rate-limiter';
 import { ConfigService } from '@nestjs/config';
 import { PlatformError } from 'src/playlist/common/errors/platform.errors';
 import { OAuthorizationError } from 'src/auth/common/errors/oauth.errors';
 import { PlaylistJSON } from 'src/playlist/common/dto/playlists.dto';
+import { PlatformResponse } from 'src/playlist/common/interfaces/platform.interface';
 
 interface SpotifyPlaylistResponse {
   id: string;
@@ -47,7 +47,6 @@ export class SpotifyApiClient {
     url: string,
     options: RequestInit = {},
   ): Promise<T> {
-    console.log('///makeRequest///');
     const response = await fetch(url, {
       ...options,
       headers: {
@@ -58,7 +57,6 @@ export class SpotifyApiClient {
     });
     const data: PlatformResponse<T> = await response.json();
 
-    console.log('makeRequest response', response);
     if (response.status === 429) {
       const retryAfter = parseInt(response.headers.get('Retry-After') || '1');
       await new Promise((resolve) => setTimeout(resolve, retryAfter * 1000));
@@ -70,6 +68,10 @@ export class SpotifyApiClient {
       throw new PlatformError(
         `Spotify API Error: ${data.error?.message || response.statusText}`,
       );
+    }
+
+    if (response.status >= 400) {
+      throw new PlatformError(`Spotify API Error : ${data.error.message}`);
     }
 
     return data as T;
@@ -85,7 +87,6 @@ export class SpotifyApiClient {
     playlistName: string;
   }> {
     return this.apiRateLimiter.addRequest(async () => {
-      console.log('///createPlaylist///');
       const data = await this.makeRequest<SpotifyPlaylistResponse>(
         userId,
         accessToken,
@@ -99,8 +100,6 @@ export class SpotifyApiClient {
           }),
         },
       );
-
-      console.log('createPlaylist', data);
 
       return {
         playlistId: data.id,
@@ -116,7 +115,6 @@ export class SpotifyApiClient {
     songData: { title: string; artist: string },
   ): Promise<{ songUri: string } | null> {
     return this.apiRateLimiter.addRequest(async () => {
-      console.log('///searchSong///');
       const query = songData.artist
         ? `track:${songData.title} artist:${songData.artist}`
         : `track:${songData.title}`;
@@ -128,8 +126,6 @@ export class SpotifyApiClient {
           query,
         )}&type=track&limit=1`,
       );
-
-      console.log('searchSong', data);
 
       return data.tracks.items[0]
         ? { songUri: data.tracks.items[0].uri }
@@ -148,7 +144,6 @@ export class SpotifyApiClient {
     for (let i = 0; i < songUris.length; i += batchSize) {
       const batch = songUris.slice(i, i + batchSize);
       await this.apiRateLimiter.addRequest(async () => {
-        console.log('///addSongsToPlaylist///');
         const data = await this.makeRequest(
           userId,
           accessToken,
@@ -160,8 +155,6 @@ export class SpotifyApiClient {
             }),
           },
         );
-
-        console.log('addSongsToPlaylist', data);
       });
     }
   }
