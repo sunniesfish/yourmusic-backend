@@ -7,10 +7,10 @@ services:
     container_name: yourmusic-backend-dev
     restart: no
     ports:
-      - '${PORT:-4000}:4000'
+      - '${PORT}:${PORT}'
     environment:
       - NODE_ENV=${NODE_ENV}
-      - PORT=${PORT:-4000}
+      - PORT=${PORT}
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
       - DB_USERNAME=${DB_USERNAME}

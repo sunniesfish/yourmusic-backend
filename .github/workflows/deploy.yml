@@ -1,0 +1,74 @@
+name: Backend Build and Deploy
+
+# Workflow runs when code is pushed to main branch
+on:
+  push:
+    branches: [main]
+
+# Environment variables
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: ${{ secrets.GCP_REGION }}
+  REPOSITORY: ${{ secrets.GCP_REPOSITORY }}
+  IMAGE_NAME: ${{ secrets.GCP_IMAGE_NAME }}
+  SERVICE_NAME: ${{ secrets.GCP_SERVICE_NAME }}
+  SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+jobs:
+  deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Check out the source code
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      # 2. Set up Google Cloud authentication
+      - name: Authenticate with Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      # 3. Set up Google Cloud SDK
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+
+      # 4. Get environment variables from Secret Manager
+      - name: Get environment variables from Secret Manager
+        run: |
+          gcloud secrets versions access latest --secret=${{ secrets.GCP_ENV_SECRET_NAME }} > .env
+
+      # 5. Configure Docker authentication
+      - name: Configure Docker authentication
+        run: |
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+      # 6. Build Docker image
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+                       -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:latest \
+                       .
+
+      # 7. Push Docker image to Artifact Registry
+      - name: Push Docker image
+        run: |
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:latest
+
+      # 8. Deploy to Cloud Run
+      - name: Deploy to Cloud Run
+        run: |
+          # Configure environment variables from .env file (excluding comments)
+          ENV_VARS=$(cat .env | grep -v "^#" | xargs)
+
+          # Deploy service to Cloud Run
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --service-account ${{ env.SERVICE_ACCOUNT }}@${{ env.PROJECT_ID }}.iam.gserviceaccount.com \
+            --update-env-vars "$ENV_VARS"
