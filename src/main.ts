@@ -20,8 +20,7 @@ async function bootstrap() {
       'X-Requested-With',
     ],
   });
-  const port = configService.get('PORT');
-  console.log(`Server is running on port ${port}`);
-  await app.listen(port);
+
+  await app.listen(configService.get('PORT'));
 }
 bootstrap();

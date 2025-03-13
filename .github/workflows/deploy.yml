@@ -14,7 +14,7 @@ env:
   SERVICE_NAME: ${{ secrets.GCP_SERVICE_NAME }}
   SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
   SA_KEY: ${{ secrets.GCP_SA_KEY }}
-
+  SECRET_NAME: ${{ secrets.GCP_ENV_SECRET_NAME }}
 jobs:
   deploy:
     name: Build and Deploy
@@ -39,7 +39,7 @@ jobs:
       # 4. Get environment variables from Secret Manager
       - name: Get environment variables from Secret Manager
         run: |
-          gcloud secrets versions access latest --secret=${{ secrets.GCP_ENV_SECRET_NAME }} > .env
+          gcloud secrets versions access latest --secret=${{ env.SECRET_NAME }} > .env
 
       # 5. Configure Docker authentication
       - name: Configure Docker authentication
