@@ -59,6 +59,12 @@ jobs:
           docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:latest
 
+      - name: Get environment variables from Cloud Run
+        run: |
+          gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region ${{ env.REGION }} \
+            --format="value(spec.template.spec.containers[0].env)"
+
       # 8. Deploy to Cloud Run
       - name: Deploy to Cloud Run
         run: |
@@ -71,9 +77,3 @@ jobs:
             --allow-unauthenticated \
             --service-account ${{ env.SERVICE_ACCOUNT }} \
             --update-env-vars "$ENV_VARS"
-
-      - name: Get environment variables from Cloud Run
-        run: |
-          gcloud run services describe ${{ env.SERVICE_NAME }} \
-            --region ${{ env.REGION }} \
-            --format="value(spec.template.spec.containers[0].env)"
