@@ -158,7 +158,7 @@ export class OAuthInterceptor implements NestInterceptor {
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       domain:
         process.env.NODE_ENV === 'production'
-          ? process.env.CORS_ORIGIN_PROD
+          ? process.env.CORS_ORIGIN
           : 'localhost',
       path: '/',
       maxAge: 24 * 60 * 60 * 1000,
