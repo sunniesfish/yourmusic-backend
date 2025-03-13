@@ -13,6 +13,7 @@ env:
   IMAGE_NAME: ${{ secrets.GCP_IMAGE_NAME }}
   SERVICE_NAME: ${{ secrets.GCP_SERVICE_NAME }}
   SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+  SA_KEY: ${{ secrets.GCP_SA_KEY }}
 
 jobs:
   deploy:
@@ -29,7 +30,7 @@ jobs:
         id: auth
         uses: google-github-actions/auth@v1
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          credentials_json: ${{ env.SA_KEY }}
 
       # 3. Set up Google Cloud SDK
       - name: Set up Google Cloud SDK
@@ -68,5 +69,5 @@ jobs:
             --region ${{ env.REGION }} \
             --platform managed \
             --allow-unauthenticated \
-            --service-account ${{ env.SERVICE_ACCOUNT }}@${{ env.PROJECT_ID }}.iam.gserviceaccount.com \
+            --service-account ${{ env.SERVICE_ACCOUNT }} \
             --update-env-vars "$ENV_VARS"
