@@ -20,7 +20,7 @@ async function bootstrap() {
       'X-Requested-With',
     ],
   });
-
+  console.log('port', configService.get('PORT'));
   if (configService.get('NODE_ENV') === 'development') {
     await app.listen(configService.get('PORT'));
   } else {
