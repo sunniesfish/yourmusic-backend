@@ -71,3 +71,9 @@ jobs:
             --allow-unauthenticated \
             --service-account ${{ env.SERVICE_ACCOUNT }} \
             --update-env-vars "$ENV_VARS"
+
+      - name: Get environment variables from Cloud Run
+        run: |
+          gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region ${{ env.REGION }} \
+            --format="value(spec.template.spec.containers[0].env)"
