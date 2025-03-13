@@ -61,6 +61,8 @@ jobs:
 
       - name: Get environment variables from Cloud Run
         run: |
+          ENV_VARS=$(grep -v '^#' .env | xargs | sed 's/ /,/g')
+          echo "ENV_VARS: $ENV_VARS"
           gcloud run services describe ${{ env.SERVICE_NAME }} \
             --region ${{ env.REGION }} \
             --format="value(spec.template.spec.containers[0].env)"
