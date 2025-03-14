@@ -69,7 +69,7 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --service-account ${{ env.SERVICE_ACCOUNT }} \
-            --set-secrets="/app/.env=${{ env.SECRET_NAME }}:latest" \
+            --set-secrets="/secrets/.env=${{ env.SECRET_NAME }}:latest" \
             --add-cloudsql-instances ${{ env.DB_INSTANCE_CONNECTION_NAME }} \
             --command="/bin/sh" \
             --args="-c,ls -la /app/dist && node dist/main.js" \

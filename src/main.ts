@@ -2,6 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import * as cookieParser from 'cookie-parser';
+import { ConfigModule } from '@nestjs/config';
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use(cookieParser());
@@ -20,6 +22,14 @@ async function bootstrap() {
       'X-Requested-With',
     ],
   });
+
+  const envFilePath =
+    process.env.NODE_ENV === 'production' ? '/secrets/.env' : '.env';
+
+  ConfigModule.forRoot({
+    envFilePath,
+  });
+
   if (configService.get('NODE_ENV') === 'development') {
     await app.listen(configService.get('PORT'));
   } else {

@@ -35,6 +35,7 @@ COPY . .
 
 RUN npm run build
 
+RUN ls -la /app/dist || echo "===========dist directory not found or empty"
 
 FROM deps AS production
 WORKDIR /app
@@ -49,4 +50,4 @@ COPY --from=build /app/node_modules ./node_modules
 
 EXPOSE 8080
 
-CMD ["node", "/app/dist/main.js"] 
+CMD ["node", "dist/main.js"] 
