@@ -50,6 +50,9 @@ COPY --from=build /app/node_modules ./node_modules
 
 RUN ls -la /app/dist || echo "======== Production stage: dist directory not found"
 
+RUN echo "#!/bin/bash\necho 'Environment variables:'\nenv\necho 'Starting application...'\nexec node /app/dist/main.js" > /app/start.sh
+RUN chmod +x /app/start.sh
+
 EXPOSE 8080
 
-CMD ["node", "dist/main.js"] 
+CMD ["/app/start.sh"] 
