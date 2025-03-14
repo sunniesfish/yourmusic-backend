@@ -34,7 +34,9 @@ export function createSpotifyApiConfig(
     !config.apiLimitPerMinute ||
     !config.apiLimitQueueSize
   ) {
-    throw new Error('Missing required Spotify API configuration');
+    throw new Error(
+      'Missing required Spotify API configuration: ' + JSON.stringify(config),
+    );
   }
 
   return config;
