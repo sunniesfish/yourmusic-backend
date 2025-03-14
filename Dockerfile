@@ -34,8 +34,8 @@ RUN npm ci
 COPY . .
 
 RUN npm run build
-# 디버그: dist 디렉토리 내용 확인
-RUN ls -la dist || echo "dist directory not found or empty"
+
+RUN ls -la /app/dist || echo "===========dist directory not found or empty"
 
 FROM deps AS production
 WORKDIR /app
