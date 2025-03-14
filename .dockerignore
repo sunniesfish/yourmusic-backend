@@ -6,7 +6,6 @@ yarn-error.log
 .github
 .vscode
 .idea
-dist/
 coverage/
 .env
 .env.*
