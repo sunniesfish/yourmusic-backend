@@ -35,7 +35,6 @@ COPY . .
 
 RUN npm run build
 
-RUN ls -la /app/dist || echo "===========dist directory not found or empty"
 
 FROM deps AS production
 WORKDIR /app
@@ -48,11 +47,6 @@ COPY --from=build /app/package*.json ./
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
 
-RUN ls -la /app/dist || echo "======== Production stage: dist directory not found"
-
-RUN echo "#!/bin/bash\necho 'Environment variables:'\nenv\necho 'Starting application...'\nexec node /app/dist/main.js" > /app/start.sh
-RUN chmod +x /app/start.sh
-
 EXPOSE 8080
 
-CMD ["/app/start.sh"] 
+CMD ["node", "dist/main.js"] 

@@ -65,4 +65,24 @@ jobs:
             --allow-unauthenticated \
             --service-account ${{ env.SERVICE_ACCOUNT }} \
             --set-secrets="/app/.env=${{ env.SECRET_NAME }}:latest" \
-            --add-cloudsql-instances ${{ env.DB_INSTANCE_CONNECTION_NAME }}
+            --add-cloudsql-instances ${{ env.DB_INSTANCE_CONNECTION_NAME }} \
+            --verbosity=debug
+
+      # 8. 배포 후 서비스 로그 확인
+      - name: Check Cloud Run service logs
+        if: always()
+        run: |
+          echo "### Recent logs ###"
+          gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=${{ env.SERVICE_NAME }}" \
+            --limit=50 \
+            --format="table(timestamp, severity, textPayload)" \
+            --freshness=1h
+
+      # 9. 배포 상태 확인
+      - name: Verify deployment status
+        if: always()
+        run: |
+          echo "### Deployment status ###"
+          gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region ${{ env.REGION }} \
+            --format="yaml(status)" || true
