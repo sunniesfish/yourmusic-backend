@@ -52,4 +52,4 @@ RUN ls -la /app/dist || echo "======== Production stage: dist directory not foun
 
 EXPOSE 8080
 
-CMD ["node", "dist/main"] 
+CMD ["node", "dist/main.js"] 
