@@ -5,15 +5,9 @@ export default registerAs('database', (): TypeOrmModuleOptions => {
   if (process.env.NODE_ENV === 'production') {
     return {
       type: 'mysql',
-      host: 'localhost',
-      username: process.env.DB_USERNAME,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_DATABASE,
+      url: process.env.CLOUD_SQL_CONNECTION_NAME,
       synchronize: false,
       logging: false,
-      extra: {
-        socketPath: `/cloudsql/${process.env.DB_HOST}`,
-      },
     };
   } else {
     return {
