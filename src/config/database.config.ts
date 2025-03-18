@@ -2,14 +2,6 @@ import { registerAs } from '@nestjs/config/dist/utils/register-as.util';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm/dist/interfaces/typeorm-options.interface';
 
 export default registerAs('database', (): TypeOrmModuleOptions => {
-  if (process.env.NODE_ENV === 'production') {
-    return {
-      type: 'mysql',
-      url: process.env.CLOUD_SQL_CONNECTION_NAME,
-      synchronize: false,
-      logging: false,
-    };
-  } else {
     return {
       type: 'mysql',
       host: process.env.DB_HOST,
