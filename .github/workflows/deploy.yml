@@ -15,7 +15,7 @@ env:
   SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
   SA_KEY: ${{ secrets.GCP_SA_KEY }}
   SECRET_NAME: ${{ secrets.GCP_ENV_SECRET_NAME }}
-  DB_INSTANCE_CONNECTION_NAME: ${{ secrets.GCP_DB_INSTANCE_CONNECTION_NAME }}
+  VPC_CONNECTOR: ${{ secrets.GCP_VPC_CONNECTOR }}
 jobs:
   deploy:
     name: Build and Deploy
@@ -60,7 +60,7 @@ jobs:
           docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:latest
 
-      # 7. Deploy to Cloud Run with Secret File mount
+      # 7. Deploy to Cloud Run with VPC connectivity
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy ${{ env.SERVICE_NAME }} \
@@ -70,12 +70,13 @@ jobs:
             --allow-unauthenticated \
             --service-account ${{ env.SERVICE_ACCOUNT }} \
             --set-secrets="/secrets/.env=${{ env.SECRET_NAME }}:latest" \
-            --add-cloudsql-instances ${{ env.DB_INSTANCE_CONNECTION_NAME }} \
+            --vpc-connector ${{ env.VPC_CONNECTOR }} \
+            --vpc-egress=private-ranges-only \
             --command="/bin/sh" \
             --args="-c,ls -la /app/dist && node dist/main.js" \
             --verbosity=debug
 
-      # 8. 배포 후 서비스 로그 확인
+      # 8. Check Cloud Run service logs
       - name: Check Cloud Run service logs
         if: always()
         run: |
@@ -85,7 +86,7 @@ jobs:
             --format="table(timestamp, severity, textPayload)" \
             --freshness=1h
 
-      # 9. 배포 상태 확인
+      # 9. Verify deployment status
       - name: Verify deployment status
         if: always()
         run: |
