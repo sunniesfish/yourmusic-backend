@@ -62,8 +62,6 @@ jobs:
         run: |
           LATEST_SECRET_VERSION=$(gcloud secrets versions list ${{ env.SECRET_NAME }} \
             --sort-by=~createTime --limit=1 --format="value(name)")
-          echo "LATEST_SECRET_VERSION=${LATEST_SECRET_VERSION}" >> $GITHUB_ENV
-          echo "Latest secret version for ${{ env.SECRET_NAME }} is ${LATEST_SECRET_VERSION}"
 
       # 8. Deploy to Cloud Run with VPC connectivity using the latest secret version
       - name: Deploy to Cloud Run
@@ -71,7 +69,7 @@ jobs:
           gcloud run deploy ${{ env.SERVICE_NAME }} \
             --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
             --region ${{ env.REGION }} \
-            --platform managed \
+            --platform managed \  
             --allow-unauthenticated \
             --service-account ${{ env.SERVICE_ACCOUNT }} \
             --set-secrets="/secrets/.env=${{ env.SECRET_NAME }}:${{ env.LATEST_SECRET_VERSION }}" \
