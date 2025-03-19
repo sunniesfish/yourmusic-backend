@@ -78,7 +78,7 @@ jobs:
             --vpc-connector ${{ env.VPC_CONNECTOR }} \
             --vpc-egress=private-ranges-only \
             --command="/bin/sh" \
-            --args="-c,ls -la /app/dist && node dist/main.js" \
+            --args="-c,cat /secrets/.env > .env && node -r dotenv/config dist/main.js" \
             --verbosity=debug
 
       # 9. Check Cloud Run service logs
