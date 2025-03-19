@@ -16,6 +16,7 @@ env:
   SA_KEY: ${{ secrets.GCP_SA_KEY }}
   SECRET_NAME: ${{ secrets.GCP_ENV_SECRET_NAME }}
   VPC_CONNECTOR: ${{ secrets.GCP_VPC_CONNECTOR }}
+
 jobs:
   deploy:
     name: Build and Deploy
@@ -49,18 +50,22 @@ jobs:
                        -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:latest \
                        .
 
-      # 이미지 내부 확인
-      - name: Check Docker image
-        run: |
-          docker run --rm ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} ls -la /app/dist
-
       # 6. Push Docker image to Artifact Registry
       - name: Push Docker image
         run: |
           docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:latest
 
-      # 7. Deploy to Cloud Run with VPC connectivity
+      # 7. Get latest secret version
+      - name: Get latest secret version
+        id: get_secret_version
+        run: |
+          LATEST_SECRET_VERSION=$(gcloud secrets versions list ${{ env.SECRET_NAME }} \
+            --sort-by=~createTime --limit=1 --format="value(name)")
+          echo "LATEST_SECRET_VERSION=${LATEST_SECRET_VERSION}" >> $GITHUB_ENV
+          echo "Latest secret version for ${{ env.SECRET_NAME }} is ${LATEST_SECRET_VERSION}"
+
+      # 8. Deploy to Cloud Run with VPC connectivity using the latest secret version
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy ${{ env.SERVICE_NAME }} \
@@ -69,14 +74,14 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --service-account ${{ env.SERVICE_ACCOUNT }} \
-            --set-secrets="/secrets/.env=${{ env.SECRET_NAME }}:latest" \
+            --set-secrets="/secrets/.env=${{ env.SECRET_NAME }}:${{ env.LATEST_SECRET_VERSION }}" \
             --vpc-connector ${{ env.VPC_CONNECTOR }} \
             --vpc-egress=private-ranges-only \
             --command="/bin/sh" \
             --args="-c,ls -la /app/dist && node dist/main.js" \
             --verbosity=debug
 
-      # 8. Check Cloud Run service logs
+      # 9. Check Cloud Run service logs
       - name: Check Cloud Run service logs
         if: always()
         run: |
@@ -86,7 +91,7 @@ jobs:
             --format="table(timestamp, severity, textPayload)" \
             --freshness=1h
 
-      # 9. Verify deployment status
+      # 10. Verify deployment status
       - name: Verify deployment status
         if: always()
         run: |
