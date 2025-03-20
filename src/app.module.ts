@@ -17,8 +17,7 @@ import { YoutubeCredentials } from './auth/entities/youtube-token.entity';
 import { Statistic } from './statistic/entities/statistic.entity';
 import { Playlist } from './playlist/entities/playlist.entity';
 
-const envFilePath =
-  process.env.NODE_ENV === 'production' ? '/secrets/.env' : '.env';
+const envFilePath = '/secrets/.env';
 
 @Module({
   imports: [
