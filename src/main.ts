@@ -1,6 +1,3 @@
-import * as dotenv from 'dotenv';
-dotenv.config({ override: true });
-
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
@@ -11,6 +8,8 @@ async function bootstrap() {
   app.use(cookieParser());
   const configService = app.get(ConfigService);
   const corsOrigin = configService.get('CORS_ORIGIN');
+
+  console.log('dbhost', configService.get('DB_HOST'));
 
   app.enableCors({
     origin: corsOrigin,
