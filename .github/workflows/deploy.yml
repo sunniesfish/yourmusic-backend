@@ -67,7 +67,7 @@ jobs:
 
       # 8. Deploy to Cloud Run with VPC connectivity using the latest secret version
       - name: Deploy to Cloud Run
-       run: |
+        run: |
           gcloud run deploy ${{ env.SERVICE_NAME }} \
             --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
             --region ${{ env.REGION }} \
@@ -78,7 +78,6 @@ jobs:
             --vpc-connector ${{ env.VPC_CONNECTOR }} \
             --vpc-egress=private-ranges-only \
             --verbosity=debug
-
 
       # 9. Check Cloud Run service logs
       - name: Check Cloud Run service logs
