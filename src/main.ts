@@ -9,7 +9,11 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const corsOrigin = configService.get('CORS_ORIGIN');
 
-  console.log('dbhost', configService.get('DB_HOST'));
+  const DB_HOST = configService.get('DB_HOST');
+  console.log('****DB_HOST', DB_HOST);
+  if (!DB_HOST) {
+    throw new Error(`DB_HOST is not set: ${DB_HOST}`);
+  }
 
   app.enableCors({
     origin: corsOrigin,
