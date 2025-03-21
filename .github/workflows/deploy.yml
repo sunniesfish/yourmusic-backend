@@ -74,7 +74,9 @@ jobs:
             --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
             --region ${{ env.REGION }} \
             --vpc-connector ${{ env.VPC_CONNECTOR }} \
-            --command "npm run migration:run"
+              --command "npm" \
+              --args "run" \
+              --args "migration:run"
 
           gcloud run jobs execute migration-job --region ${{ env.REGION }}
 
