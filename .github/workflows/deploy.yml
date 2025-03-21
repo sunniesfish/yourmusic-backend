@@ -77,6 +77,8 @@ jobs:
               --command "npm" \
               --args "run" \
               --args "migration:run"
+              --args "--dataSource" \
+              --args "./src/config/ormconfig.ts"
 
           gcloud run jobs execute migration-job --region ${{ env.REGION }}
 
