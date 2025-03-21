@@ -68,6 +68,8 @@ jobs:
       # 8. Run migrations
       - name: Execute Cloud Run Job for Migrations
         run: |
+          gcloud run jobs delete migration-job --region ${{ env.REGION }} --quiet || true
+
           gcloud run jobs create migration-job \
             --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
             --region ${{ env.REGION }} \
