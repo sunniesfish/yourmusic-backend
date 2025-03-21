@@ -65,7 +65,19 @@ jobs:
           echo "Latest secret version: $LATEST_SECRET_VERSION"
           echo "LATEST_SECRET_VERSION=${LATEST_SECRET_VERSION}" >> $GITHUB_OUTPUT
 
-      # 8. Deploy to Cloud Run with VPC connectivity using the latest secret version
+      # 8. Run migrations
+      - name: Execute Cloud Run Job for Migrations
+        run: |
+          gcloud run jobs create migration-job \
+            --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            --region ${{ env.REGION }} \
+            --vpc-connector ${{ env.VPC_CONNECTOR }} \
+            --no-allow-unauthenticated \
+            --command "npm run typeorm:migration:run"
+
+          gcloud run jobs execute migration-job --region ${{ env.REGION }}
+
+      # 9. Deploy to Cloud Run with VPC connectivity using the latest secret version
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy ${{ env.SERVICE_NAME }} \

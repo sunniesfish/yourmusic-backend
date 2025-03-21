@@ -58,8 +58,4 @@ const envFilePath = '/secrets/.env';
   controllers: [],
   providers: [],
 })
-export class AppModule {
-  constructor(private configService: ConfigService) {
-    console.log('////////////DB_HOST', this.configService.get('DB_HOST'));
-  }
-}
+export class AppModule {}
