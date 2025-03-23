@@ -15,6 +15,9 @@ config({ path: envPath });
 
 const configService = new ConfigService();
 
+console.log('데이터소스 설정 로드 중...');
+console.log('마이그레이션 경로:', join(__dirname, '../migrations/*.js'));
+
 export default new DataSource({
   type: 'mysql',
   host: configService.get('DB_HOST'),
