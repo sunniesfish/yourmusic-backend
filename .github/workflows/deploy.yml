@@ -77,7 +77,36 @@ jobs:
             --command="npm" \
             --args="run,migration:run,--dataSource,./src/config/ormconfig.ts"
 
-          gcloud run jobs execute migration-job --region ${{ env.REGION }}
+          gcloud run jobs execute migration-job --region ${{ env.REGION }} --wait
+
+      # 8.1 Check Migration Job logs
+      - name: Check Migration Job logs
+        if: always()
+        run: |
+          echo "### Migration Job execution result ###"
+
+          # get the latest execution id
+          EXECUTION_ID=$(gcloud run jobs executions list \
+            --job migration-job \
+            --region ${{ env.REGION }} \
+            --sort-by=~create_time \
+            --limit=1 \
+            --format="value(name)")
+            
+          echo "Latest execution ID: $EXECUTION_ID"
+
+          # check the execution status
+          gcloud run jobs executions describe $EXECUTION_ID \
+            --job migration-job \
+            --region ${{ env.REGION }} \
+            --format="table(name, status, startTime, completionTime)"
+
+          # print the job logs
+          echo "### Migration Job logs ###"
+          gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=migration-job AND resource.labels.execution_name=${EXECUTION_ID##*/}" \
+            --limit=50 \
+            --format="table(timestamp.date('%Y-%m-%d %H:%M:%S'), severity, textPayload)" \
+            --order=asc
 
       # 9. Deploy to Cloud Run with VPC connectivity using the latest secret version
       - name: Deploy to Cloud Run
