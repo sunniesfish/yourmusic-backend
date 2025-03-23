@@ -74,6 +74,7 @@ jobs:
             --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
             --region ${{ env.REGION }} \
             --vpc-connector ${{ env.VPC_CONNECTOR }} \
+            --set-secrets="/secrets/.env=${{ env.SECRET_NAME }}:${{ steps.get_secret_version.outputs.LATEST_SECRET_VERSION }}" \
             --command="npm" \
             --args="run,migration:run,--,--dataSource,./dist/config/ormconfig.js"
 
