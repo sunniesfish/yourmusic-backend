@@ -77,7 +77,7 @@ jobs:
             --vpc-connector ${{ env.VPC_CONNECTOR }} \
             --set-secrets="/secrets/.env=${{ env.SECRET_NAME }}:${{ steps.get_secret_version.outputs.LATEST_SECRET_VERSION }}" \
             --command="npm" \
-            --args="run,migration:run:fixed"
+            --args="run,migration:run:prod,--,--dataSource,./dist/config/ormconfig.js"
 
           gcloud run jobs execute migration-job --region ${{ env.REGION }} --wait
 
