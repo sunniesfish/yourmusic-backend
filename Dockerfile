@@ -44,9 +44,12 @@ RUN npm ci
 
 COPY . .
 
+# TypeScript 컴파일 실행 (마이그레이션 포함)
 RUN npm run build
 
-RUN ls -la /app/dist || echo "===========dist directory not found or empty"
+# 마이그레이션 파일 존재 확인
+RUN ls -la /app/dist/migrations || echo "경고: 마이그레이션 디렉토리를 찾을 수 없습니다. tsconfig.json 확인 필요"
+RUN find /app/dist/migrations -name "*.js" | grep . || echo "경고: 컴파일된 마이그레이션 파일을 찾을 수 없습니다"
 
 FROM deps AS production
 WORKDIR /app
