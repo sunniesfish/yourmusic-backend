@@ -75,7 +75,7 @@ jobs:
             --region ${{ env.REGION }} \
             --vpc-connector ${{ env.VPC_CONNECTOR }} \
             --command="npm" \
-            --args="run,migration:run,--dataSource,./src/config/ormconfig.ts"
+            --args="run,migration:run,--,--dataSource,./src/config/ormconfig.ts"
 
           gcloud run jobs execute migration-job --region ${{ env.REGION }} --wait
 
