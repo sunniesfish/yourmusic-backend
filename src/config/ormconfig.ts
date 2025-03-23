@@ -30,7 +30,7 @@ export default new DataSource({
     SpotifyToken,
     YoutubeCredentials,
   ],
-  migrations: [join(__dirname, '../migrations/*.{js,ts}')],
+  migrations: [join(__dirname, '../migrations/**/*.js')],
   migrationsTableName: 'migrations',
   synchronize: false,
   logging: configService.get('NODE_ENV') !== 'production',
