@@ -22,10 +22,8 @@ export class ScraperService implements OnModuleInit, OnModuleDestroy {
    * Initialize worker pool with configured number of workers
    */
   private async initializeWorkerPool(): Promise<void> {
-    console.log('//////////initializeWorkerPool');
     for (let i = 0; i < this.config.maxWorkers; i++) {
       const worker = this.createWorker();
-      console.log('worker created', worker);
       this.workerPool.push(worker);
     }
   }
@@ -34,7 +32,6 @@ export class ScraperService implements OnModuleInit, OnModuleDestroy {
    * Create a new worker instance
    */
   private createWorker(): Worker {
-    console.log('create worker');
     const worker = new Worker(this.config.workerPath, {
       execArgv: this.config.execArgv,
     });
@@ -58,13 +55,11 @@ export class ScraperService implements OnModuleInit, OnModuleDestroy {
    * Get an available worker from the pool
    */
   private async getAvailableWorker(): Promise<Worker> {
-    console.log('getAvailableWorker');
     const availableWorker = this.workerPool.find(
       (worker) => !this.busyWorkers.has(worker),
     );
 
     if (availableWorker) {
-      console.log('availableWorker');
       this.busyWorkers.add(availableWorker);
       return availableWorker;
     }
@@ -72,7 +67,6 @@ export class ScraperService implements OnModuleInit, OnModuleDestroy {
     // Wait for an available worker
     return new Promise((resolve) => {
       const interval = setInterval(() => {
-        console.log('interval');
         const worker = this.workerPool.find((w) => !this.busyWorkers.has(w));
         if (worker) {
           clearInterval(interval);
@@ -156,8 +150,6 @@ export class ScraperService implements OnModuleInit, OnModuleDestroy {
     selector: string,
     extractDataFn: () => Promise<PlaylistJSON[]>,
   ): Promise<PlaylistJSON[]> {
-    console.log('scrape', link, selector, extractDataFn);
-
     const worker = await this.getAvailableWorker();
 
     try {
