@@ -158,8 +158,14 @@ export class PlaylistResolver {
   @Auth(AuthLevel.NONE)
   @Mutation(() => [PlaylistJSON])
   async readPlaylist(@Args('link', { type: () => String }) link: string) {
-    console.log('link', link);
-    return await this.playlistService.read(link);
+    try {
+      return await this.playlistService.read(link);
+    } catch (error) {
+      if (error.message.includes('Playlist not found')) {
+        throw new PlatformError('PLAYLIST_NOT_FOUND');
+      }
+      throw error;
+    }
   }
 
   /**
@@ -267,7 +273,6 @@ export class PlaylistResolver {
         listJSON,
       );
     } catch (error) {
-      console.log('*****************CAUGHT IN RESOLVER');
       if (error instanceof OAuthenticationError) {
         if (!user?.id) {
           throw new OAuthorizationError(error.message);

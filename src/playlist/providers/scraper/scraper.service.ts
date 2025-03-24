@@ -159,7 +159,7 @@ export class ScraperService implements OnModuleInit, OnModuleDestroy {
         extractDataFn: extractDataFn.toString(),
       });
     } catch (error) {
-      throw new Error(`Scraping failed: ${error.message}`);
+      throw new Error(`Playlist not found`);
     }
   }
 }

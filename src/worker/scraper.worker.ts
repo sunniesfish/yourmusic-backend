@@ -1,17 +1,7 @@
-console.log(
-  '////////////////////////////////////////////scraper worker////////////////////////////////////////////',
-);
-
 import { parentPort } from 'worker_threads';
 import puppeteer, { Browser } from 'puppeteer';
 import { scraperConfigService } from '../playlist/providers/scraper/scraper.config';
-
-// Add debug logging
-const isDebug = process.env.NODE_ENV !== 'production';
-if (isDebug) {
-  console.log('Worker started at:', new Date().toISOString());
-  console.log('Worker file location:', __filename);
-}
+import { PlaylistJSON } from 'src/playlist/common/dto/playlists.dto';
 
 /**
  * BrowserPool Class
@@ -33,7 +23,7 @@ class BrowserPool {
    * @returns Browser
    */
   async getBrowser(): Promise<Browser> {
-    // Find available browser
+    // Find available browser : find broswer from pool and set it to inUse
     const availableBrowser = this.browsers.find(
       (browser) => !this.inUse.has(browser),
     );
@@ -102,7 +92,6 @@ const browserPool = new BrowserPool();
  * @returns Promise<{ data: any; error?: string }>
  */
 async function scrape({ link, selector, extractDataFn }) {
-  console.log('start scraping:', { link, selector });
   let browser: Browser | null = null;
   let page = null;
 
@@ -120,14 +109,7 @@ async function scrape({ link, selector, extractDataFn }) {
         request.continue();
       }
     });
-    // Log request and response
-    page.on('request', (request) => {
-      console.log('Request:', request.url());
-    });
-    page.on('response', (response) => {
-      console.log('Response:', response.url(), response.status());
-    });
-    // Load page and extract data
+
     await page.goto(link, {
       waitUntil: ['networkidle0', 'domcontentloaded', 'load'],
     });
@@ -135,15 +117,10 @@ async function scrape({ link, selector, extractDataFn }) {
 
     const fnToExecute = new Function(`return ${extractDataFn}`)();
 
-    const data = await page.evaluate(fnToExecute);
-
-    // Log performance metrics
-    const metrics = await page.metrics();
-    console.log('Performance Metrics:', metrics);
+    const data: PlaylistJSON[] = await page.evaluate(fnToExecute);
 
     return { data };
   } catch (error) {
-    console.log('scraping error:', error);
     return {
       error: error.message,
       stack: error.stack,
@@ -164,15 +141,12 @@ async function scrape({ link, selector, extractDataFn }) {
  */
 parentPort?.on('message', async (job) => {
   try {
-    console.log('Worker received job:', job);
     const result = await scrape(job);
-    console.log('Worker completed job:', result);
     parentPort?.postMessage({
       success: true,
       data: result.data,
     });
   } catch (error) {
-    console.error('Worker error:', error);
     parentPort?.postMessage({
       success: false,
       error: {

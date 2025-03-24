@@ -8,7 +8,6 @@ import { GoogleAuthService } from 'src/auth/providers/google/google-auth.service
 import { YouTubeConfigService } from './client/youtubeConfig';
 import { YouTubeConfig } from './client/youtubeConfig';
 import { YouTubeApiClient } from './client/youtube-api.client';
-import { OAuthenticationError } from 'src/auth/common/errors/oauth.errors';
 @Injectable()
 export class YouTubeService {
   private config: YouTubeConfig;
@@ -71,12 +70,9 @@ export class YouTubeService {
     songs: PlaylistJSON[],
     accessToken: string,
   ): Promise<void> {
-    console.log('===== process songs =====');
     for (let i = 0; i < songs.length; i++) {
-      console.log('processing song ' + (i + 1) + ' of ' + songs.length);
       await this.processOneSong(userId, playlistId, songs[i], accessToken);
     }
-    console.log('===== process songs done =====');
   }
 
   private async processOneSong(
@@ -85,9 +81,6 @@ export class YouTubeService {
     song: PlaylistJSON,
     accessToken: string,
   ): Promise<void> {
-    console.log('.');
-    console.log('.');
-    console.log('===== process one song ' + song.title + ' =====');
     const searchQuery = `${song.title} ${song.artist}`;
     const videoId = await this.executeWithAuth(
       userId,

@@ -174,8 +174,13 @@ export class SpotifyApiClient {
       },
       body: 'grant_type=client_credentials',
     });
+
+    if (response.status === 404) {
+      throw new Error('Playlist not found');
+    }
+
     if (!response.ok) {
-      new BadRequestException();
+      throw new BadRequestException();
     }
 
     const authData = await response.json();
