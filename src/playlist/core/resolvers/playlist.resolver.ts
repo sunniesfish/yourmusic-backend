@@ -328,7 +328,7 @@ export class PlaylistResolver {
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       domain:
         process.env.NODE_ENV === 'production'
-          ? process.env.CORS_ORIGIN_PROD
+          ? process.env.COOKIE_DOMAIN
           : 'localhost',
       path: '/',
       maxAge: 24 * 60 * 60 * 1000,
