@@ -7,7 +7,9 @@ async function bootstrap() {
   app.use(cookieParser());
   const configService = app.get(ConfigService);
   const corsOrigin: string = configService.get('CORS_ORIGIN');
-
+  const cookieDomain: string = configService.get('COOKIE_DOMAIN');
+  console.log('cookieDomain', cookieDomain);
+  console.log('corsOrigin', corsOrigin);
   app.enableCors({
     origin: corsOrigin,
     credentials: true,

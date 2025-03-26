@@ -286,6 +286,9 @@ export class PlaylistResolver {
           throw new OAuthorizationError(error.message);
         }
 
+        attempt.count += 1;
+        attempt.inProgress = true;
+
         if (!attempt.inProgress) {
           const oauthResponse = await this.googleAuthService.refreshAccessToken(
             user.id,
@@ -296,9 +299,6 @@ export class PlaylistResolver {
             ApiDomain.YOUTUBE,
             oauthResponse.access_token,
           );
-
-          attempt.count += 1;
-          attempt.inProgress = true;
 
           return this.convertToYoutubePlaylist(
             ctx,
@@ -313,6 +313,8 @@ export class PlaylistResolver {
       if (error instanceof PlatformError) {
         throw new BadRequestException(error.message);
       }
+
+      throw error;
     }
   }
 
