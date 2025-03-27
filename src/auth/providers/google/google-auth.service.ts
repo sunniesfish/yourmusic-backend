@@ -112,6 +112,7 @@ export class GoogleAuthService extends OAuth2Service {
    * @returns OAuth2TokenResponse
    */
   async refreshAccessToken(userId: string): Promise<OAuth2TokenResponse> {
+    console.log('start refreshAccessToken');
     const oauth2Client = this.createOAuthClient();
     try {
       const credentials = await this.youtubeCredentialsRepository.findOne({

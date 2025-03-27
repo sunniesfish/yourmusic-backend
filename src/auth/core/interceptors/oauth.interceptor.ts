@@ -56,6 +56,7 @@ export class OAuthInterceptor implements NestInterceptor {
     console.log('accessToken', accessToken);
     console.log('userId', userId);
     console.log('authCode', authCode);
+    console.log('apiDomain', apiDomain);
 
     if (accessToken) {
       ctx.req.api_accessToken = accessToken;
@@ -65,6 +66,7 @@ export class OAuthInterceptor implements NestInterceptor {
     if (userId) {
       try {
         const authResponse = await this.refreshAccessToken(apiDomain, userId);
+        console.log('in interceptor authResponse', authResponse);
         this.setAccessTokenToContext(ctx, apiDomain, authResponse.access_token);
         return next.handle();
       } catch (error) {
