@@ -12,7 +12,6 @@ import { Reflector } from '@nestjs/core';
 import { SpotifyAuthService } from 'src/auth/providers/spotify/spotify-auth.service';
 import { GoogleAuthService } from 'src/auth/providers/google/google-auth.service';
 import { OAuthorizationError } from 'src/auth/common/errors/oauth.errors';
-import { GqlContext } from '../../common/interfaces/context.interface';
 import { ApiDomain } from '../../common/enums/api-domain.enum';
 import { OAUTH_TYPE_KEY } from '../../../global/decorators/auth.decorator';
 
@@ -23,10 +22,6 @@ interface RefreshAttemptState {
 
 @Injectable()
 export class OAuthErrorInterceptor implements NestInterceptor {
-  private readonly MAX_REFRESH_ATTEMPTS = 3;
-  private refreshAttempts = new Map<string, RefreshAttemptState>();
-  private static readonly INTERCEPTOR_EXECUTED = 'OAUTH_INTERCEPTOR_EXECUTED';
-
   constructor(
     private readonly reflector: Reflector,
     private readonly googleAuthService: GoogleAuthService,

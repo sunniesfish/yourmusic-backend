@@ -208,31 +208,42 @@ export class PlaylistResolver {
         if (!this.retryAttempts.has(key)) {
           this.retryAttempts.set(key, { count: 0, inProgress: false });
         }
+
         const attempt = this.retryAttempts.get(key)!;
+
         if (attempt.count >= this.MAX_RETRY_ATTEMPTS) {
           throw new OAuthorizationError(error.message);
         }
 
         attempt.count += 1;
-        attempt.inProgress = true;
 
         if (!attempt.inProgress) {
-          const oauthResponse =
-            await this.spotifyAuthService.refreshAccessToken(user.id);
+          try {
+            attempt.inProgress = true;
+            const oauthResponse =
+              await this.spotifyAuthService.refreshAccessToken(user.id);
 
-          this.setAccessTokenToContext(
-            ctx,
-            ApiDomain.SPOTIFY,
-            oauthResponse.access_token,
-          );
+            this.setAccessTokenToContext(
+              ctx,
+              ApiDomain.SPOTIFY,
+              oauthResponse.access_token,
+            );
 
-          return this.convertToSpotifyPlaylist(
-            ctx,
-            user,
-            listJSON,
-            state,
-            authorizationCode,
-          );
+            return this.convertToSpotifyPlaylist(
+              ctx,
+              user,
+              listJSON,
+              state,
+              authorizationCode,
+            );
+          } catch (error) {
+            attempt.inProgress = false;
+            throw new OAuthorizationError(
+              'Failed to refresh token: ' + error.message,
+            );
+          }
+        } else {
+          throw new OAuthorizationError('Authentication retry in progress');
         }
       }
       if (error instanceof PlatformError) {
@@ -258,7 +269,8 @@ export class PlaylistResolver {
   async convertToYoutubePlaylist(
     @Context() ctx: GqlContext,
     @CurrentUser() user: UserInput,
-    @Args('listJSON', { type: () => [PlaylistJSON] }) listJSON: PlaylistJSON[],
+    @Args('listJSON', { type: () => [PlaylistJSON] })
+    listJSON: PlaylistJSON[],
     @Args('state', { type: () => String, nullable: true })
     state?: string,
     @Args('authorizationCode', { type: () => String, nullable: true })
@@ -281,32 +293,42 @@ export class PlaylistResolver {
         if (!this.retryAttempts.has(key)) {
           this.retryAttempts.set(key, { count: 0, inProgress: false });
         }
+
         const attempt = this.retryAttempts.get(key)!;
+
         if (attempt.count >= this.MAX_RETRY_ATTEMPTS) {
           throw new OAuthorizationError(error.message);
         }
 
         attempt.count += 1;
-        attempt.inProgress = true;
 
         if (!attempt.inProgress) {
-          const oauthResponse = await this.googleAuthService.refreshAccessToken(
-            user.id,
-          );
+          attempt.inProgress = true;
+          try {
+            const oauthResponse =
+              await this.googleAuthService.refreshAccessToken(user.id);
+            this.setAccessTokenToContext(
+              ctx,
+              ApiDomain.YOUTUBE,
+              oauthResponse.access_token,
+            );
 
-          this.setAccessTokenToContext(
-            ctx,
-            ApiDomain.YOUTUBE,
-            oauthResponse.access_token,
-          );
-
-          return this.convertToYoutubePlaylist(
-            ctx,
-            user,
-            listJSON,
-            state,
-            authorizationCode,
-          );
+            attempt.inProgress = false;
+            return this.convertToYoutubePlaylist(
+              ctx,
+              user,
+              listJSON,
+              state,
+              authorizationCode,
+            );
+          } catch (error) {
+            attempt.inProgress = false;
+            throw new OAuthorizationError(
+              'Failed to refresh token: ' + error.message,
+            );
+          }
+        } else {
+          throw new OAuthorizationError('Authentication retry in progress');
         }
       }
 
