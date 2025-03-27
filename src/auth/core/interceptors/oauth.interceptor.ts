@@ -53,6 +53,10 @@ export class OAuthInterceptor implements NestInterceptor {
     const userId = ctx.req.user?.id;
     const authCode = gqlContext.getArgs().authorizationCode;
 
+    console.log('accessToken', accessToken);
+    console.log('userId', userId);
+    console.log('authCode', authCode);
+
     if (accessToken) {
       ctx.req.api_accessToken = accessToken;
       return next.handle();
