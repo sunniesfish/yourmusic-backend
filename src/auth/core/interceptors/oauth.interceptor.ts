@@ -70,9 +70,7 @@ export class OAuthInterceptor implements NestInterceptor {
         this.setAccessTokenToContext(ctx, apiDomain, authResponse.access_token);
         return next.handle();
       } catch (error) {
-        if (!(error instanceof OAuthorizationError)) {
-          throw error;
-        }
+        throw error;
       }
     }
 
