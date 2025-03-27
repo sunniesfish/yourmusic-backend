@@ -179,7 +179,7 @@ export class PlaylistResolver {
    */
   @Auth(AuthLevel.OPTIONAL)
   @RequireOAuth(ApiDomain.SPOTIFY)
-  @UseInterceptors(OAuthInterceptor, OAuthErrorInterceptor)
+  @UseInterceptors(OAuthErrorInterceptor, OAuthInterceptor)
   @Mutation(() => ConvertPlaylistResponse)
   async convertToSpotifyPlaylist(
     @Context() ctx: GqlContext,
@@ -264,7 +264,7 @@ export class PlaylistResolver {
    */
   @Auth(AuthLevel.OPTIONAL)
   @RequireOAuth(ApiDomain.YOUTUBE)
-  @UseInterceptors(OAuthInterceptor, OAuthErrorInterceptor)
+  @UseInterceptors(OAuthErrorInterceptor, OAuthInterceptor)
   @Mutation(() => ConvertPlaylistResponse)
   async convertToYoutubePlaylist(
     @Context() ctx: GqlContext,
