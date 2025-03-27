@@ -37,7 +37,9 @@ export class OAuthErrorInterceptor implements NestInterceptor {
     );
     return next.handle().pipe(
       catchError((error) => {
+        console.log('error-in interceptor catchError', error);
         if (error instanceof OAuthorizationError) {
+          console.log('error is instance of OAuthorizationError');
           if (apiDomain === ApiDomain.SPOTIFY) {
             return of({
               needsAuth: true,
