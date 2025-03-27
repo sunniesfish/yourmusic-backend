@@ -281,7 +281,6 @@ export class PlaylistResolver {
       ctx.req.api_accessToken,
       user?.id,
       authorizationCode,
-      listJSON,
     );
     try {
       const apiAccessToken = ctx.req.api_accessToken;
