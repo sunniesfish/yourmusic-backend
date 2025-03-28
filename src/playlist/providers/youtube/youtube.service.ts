@@ -54,6 +54,8 @@ export class YouTubeService {
       },
     );
 
+    console.log('in youtube service playlistId', playlistId);
+
     await this.processSongs(userId, playlistId, playlistJSON, accessToken);
     return {
       success: true,

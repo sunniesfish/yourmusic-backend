@@ -49,6 +49,7 @@ export class PlaylistService {
         accessToken,
         playlistJSON,
       );
+    console.log('playlist service convertedPlaylist', convertedPlaylist);
     return convertedPlaylist;
   }
 
