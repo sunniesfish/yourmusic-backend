@@ -63,17 +63,6 @@ export class OAuthInterceptor implements NestInterceptor {
       return next.handle();
     }
 
-    if (userId) {
-      try {
-        const authResponse = await this.refreshAccessToken(apiDomain, userId);
-        this.setAccessTokenToContext(ctx, apiDomain, authResponse.access_token);
-        return next.handle();
-      } catch (error) {
-        console.log('refreshAccessToken error', error);
-        throw error;
-      }
-    }
-
     if (authCode) {
       try {
         const authResponse = await this.getNewToken(
@@ -89,6 +78,17 @@ export class OAuthInterceptor implements NestInterceptor {
       }
     } else {
       ctx.req.needsAuthUrl = true;
+    }
+
+    if (userId) {
+      try {
+        const authResponse = await this.refreshAccessToken(apiDomain, userId);
+        this.setAccessTokenToContext(ctx, apiDomain, authResponse.access_token);
+        return next.handle();
+      } catch (error) {
+        console.log('refreshAccessToken error', error);
+        throw error;
+      }
     }
 
     return next.handle();
