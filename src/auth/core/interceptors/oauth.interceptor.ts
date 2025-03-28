@@ -53,19 +53,13 @@ export class OAuthInterceptor implements NestInterceptor {
     const userId = ctx.req.user?.id;
     const authCode = gqlContext.getArgs().authorizationCode;
 
+    console.log('accessToken', accessToken);
+    console.log('userId', userId);
+    console.log('authCode', authCode);
+
     if (accessToken) {
       ctx.req.api_accessToken = accessToken;
       return next.handle();
-    }
-
-    if (userId) {
-      try {
-        const authResponse = await this.refreshAccessToken(apiDomain, userId);
-        this.setAccessTokenToContext(ctx, apiDomain, authResponse.access_token);
-        return next.handle();
-      } catch (error) {
-        throw error;
-      }
     }
 
     if (authCode) {
@@ -83,6 +77,16 @@ export class OAuthInterceptor implements NestInterceptor {
       }
     } else {
       ctx.req.needsAuthUrl = true;
+    }
+
+    if (userId) {
+      try {
+        const authResponse = await this.refreshAccessToken(apiDomain, userId);
+        this.setAccessTokenToContext(ctx, apiDomain, authResponse.access_token);
+        return next.handle();
+      } catch (error) {
+        throw error;
+      }
     }
 
     return next.handle();
