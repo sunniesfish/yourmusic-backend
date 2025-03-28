@@ -56,7 +56,6 @@ export class YouTubeApiClient {
         ...options.headers,
       },
     });
-    console.log('youtube api response', response);
     const data: PlatformResponse<T> = await response.json();
     if (response.status === 401 || response.status === 403) {
       throw new OAuthenticationError(
@@ -71,7 +70,6 @@ export class YouTubeApiClient {
     }
 
     if (response.status >= 400) {
-      console.log('youtube api error', response);
       throw new PlatformError(`YouTube API Error: ${data.error.message}`);
     }
 
@@ -110,7 +108,6 @@ export class YouTubeApiClient {
         oauth2Client,
         `${this.config.baseUrl}/search?part=snippet&type=video&maxResults=1&q=${encodedQuery}&fields=items(id/videoId)`,
       );
-      console.log('**searchVideo data:', data.items[0].id.videoId);
 
       return data?.items[0]?.id?.videoId || null;
     });
@@ -122,7 +119,7 @@ export class YouTubeApiClient {
     videoId: string,
   ): Promise<void> {
     return this.apiRateLimiter.addRequest(async () => {
-      const data: any = await this.makeRequest(
+      await this.makeRequest(
         oauth2Client,
         `${this.config.baseUrl}/playlistItems?part=snippet`,
         {
@@ -138,7 +135,6 @@ export class YouTubeApiClient {
           }),
         },
       );
-      console.log('addToPlaylist data:', data.snippet.title);
     });
   }
 }

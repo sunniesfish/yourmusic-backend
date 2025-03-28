@@ -38,7 +38,6 @@ export class OAuthInterceptor implements NestInterceptor {
     context: ExecutionContext,
     next: CallHandler,
   ): Promise<Observable<any>> {
-    console.log('in interceptor');
     const gqlContext = GqlExecutionContext.create(context);
     const ctx = gqlContext.getContext<GqlContext>();
     const apiDomain = this.reflector.get<ApiDomain>(
@@ -50,30 +49,17 @@ export class OAuthInterceptor implements NestInterceptor {
       return next.handle();
     }
 
-    const accessToken = this.extractAccessToken(ctx.req, apiDomain);
     const userId = ctx.req.user?.id;
     const authCode = gqlContext.getArgs().authorizationCode;
 
-    console.log('accessToken', accessToken);
-    console.log('userId', userId);
-    console.log('authCode', authCode);
-    console.log('apiDomain', apiDomain);
-
-    if (accessToken) {
-      console.log('accessToken found');
-      ctx.req.api_accessToken = accessToken;
-      return next.handle();
-    }
-
     if (authCode) {
-      console.log('authCode found');
       try {
         const authResponse = await this.getNewToken(
           apiDomain,
           authCode,
           userId,
         );
-        this.setAccessTokenToContext(ctx, apiDomain, authResponse.access_token);
+        this.setAccessTokenToContext(ctx, authResponse.access_token);
         return next.handle();
       } catch (error) {
         ctx.req.needsAuthUrl = true;
@@ -83,11 +69,9 @@ export class OAuthInterceptor implements NestInterceptor {
     }
 
     if (userId) {
-      console.log('userId found');
       try {
         const authResponse = await this.refreshAccessToken(apiDomain, userId);
-        console.log('in interceptor authResponse', authResponse);
-        this.setAccessTokenToContext(ctx, apiDomain, authResponse.access_token);
+        this.setAccessTokenToContext(ctx, authResponse.access_token);
         return next.handle();
       } catch (error) {
         throw error;
@@ -95,21 +79,6 @@ export class OAuthInterceptor implements NestInterceptor {
     }
 
     return next.handle();
-  }
-
-  /**
-   * Extracts the access token from request cookies for the specified API domain
-   * @param request - HTTP request object containing cookies
-   * @param apiDomain - API domain to extract the token for (YouTube or Spotify)
-   * @returns Access token string if found, null otherwise
-   */
-  private extractAccessToken(
-    request: any,
-    apiDomain: ApiDomain,
-  ): string | null {
-    const cookieName = `${apiDomain}_access_token`;
-    const cookies = request.cookies;
-    return cookies?.[cookieName] || null;
   }
 
   /**
@@ -153,23 +122,8 @@ export class OAuthInterceptor implements NestInterceptor {
     throw new UnauthorizedException('Invalid API domain');
   }
 
-  private setAccessTokenToContext(
-    ctx: GqlContext,
-    apiDomain: ApiDomain,
-    accessToken: string,
-  ) {
+  private setAccessTokenToContext(ctx: GqlContext, accessToken: string) {
     ctx.req.api_accessToken = accessToken;
     ctx.req.needsAuthUrl = false;
-    ctx.res.cookie(`${apiDomain}_access_token`, accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      domain:
-        process.env.NODE_ENV === 'production'
-          ? process.env.COOKIE_DOMAIN
-          : 'localhost',
-      path: '/',
-      maxAge: 24 * 60 * 60 * 1000,
-    });
   }
 }

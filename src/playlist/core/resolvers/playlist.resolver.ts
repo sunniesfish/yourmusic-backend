@@ -39,6 +39,7 @@ import {
   OAuthenticationError,
   OAuthorizationError,
 } from 'src/auth/common/errors/oauth.errors';
+import { OAuth2TokenResponse } from 'src/auth/common/interfaces/oauth.interface';
 @Resolver(() => Playlist)
 export class PlaylistResolver {
   private readonly MAX_RETRY_ATTEMPTS = 3;
@@ -84,7 +85,6 @@ export class PlaylistResolver {
       user.id,
       mutatePlaylistInput,
     );
-    console.log('result', result);
     return result;
   }
 
@@ -179,7 +179,7 @@ export class PlaylistResolver {
    */
   @Auth(AuthLevel.OPTIONAL)
   @RequireOAuth(ApiDomain.SPOTIFY)
-  @UseInterceptors(OAuthErrorInterceptor, OAuthInterceptor)
+  @UseInterceptors(OAuthInterceptor, OAuthErrorInterceptor)
   @Mutation(() => ConvertPlaylistResponse)
   async convertToSpotifyPlaylist(
     @Context() ctx: GqlContext,
@@ -200,56 +200,21 @@ export class PlaylistResolver {
         listJSON,
       );
     } catch (error) {
-      if (error instanceof OAuthenticationError) {
-        if (!user?.id) {
-          throw new OAuthorizationError(error.message);
-        }
-        const key = `${user.id}:${ApiDomain.SPOTIFY}`;
-        if (!this.retryAttempts.has(key)) {
-          this.retryAttempts.set(key, { count: 0, inProgress: false });
-        }
-
-        const attempt = this.retryAttempts.get(key)!;
-
-        if (attempt.count >= this.MAX_RETRY_ATTEMPTS) {
-          throw new OAuthorizationError(error.message);
-        }
-
-        attempt.count += 1;
-
-        if (!attempt.inProgress) {
-          try {
-            attempt.inProgress = true;
-            const oauthResponse =
-              await this.spotifyAuthService.refreshAccessToken(user.id);
-
-            this.setAccessTokenToContext(
-              ctx,
-              ApiDomain.SPOTIFY,
-              oauthResponse.access_token,
-            );
-
-            return this.convertToSpotifyPlaylist(
-              ctx,
-              user,
-              listJSON,
-              state,
-              authorizationCode,
-            );
-          } catch (error) {
-            attempt.inProgress = false;
-            throw new OAuthorizationError(
-              'Failed to refresh token: ' + error.message,
-            );
-          }
-        } else {
-          throw new OAuthorizationError('Authentication retry in progress');
-        }
-      }
-      if (error instanceof PlatformError) {
-        throw new BadRequestException(error.message);
-      }
-      throw error;
+      return this.handleConversionError(
+        error,
+        user,
+        ctx,
+        ApiDomain.SPOTIFY,
+        () => this.spotifyAuthService.refreshAccessToken(user.id),
+        () =>
+          this.convertToSpotifyPlaylist(
+            ctx,
+            user,
+            listJSON,
+            state,
+            authorizationCode,
+          ),
+      );
     }
   }
 
@@ -264,7 +229,7 @@ export class PlaylistResolver {
    */
   @Auth(AuthLevel.OPTIONAL)
   @RequireOAuth(ApiDomain.YOUTUBE)
-  @UseInterceptors(OAuthErrorInterceptor, OAuthInterceptor)
+  @UseInterceptors(OAuthInterceptor, OAuthErrorInterceptor)
   @Mutation(() => ConvertPlaylistResponse)
   async convertToYoutubePlaylist(
     @Context() ctx: GqlContext,
@@ -276,75 +241,40 @@ export class PlaylistResolver {
     @Args('authorizationCode', { type: () => String, nullable: true })
     authorizationCode?: string,
   ): Promise<ConvertedPlaylist | AuthRequiredResponse> {
-    console.log('convertToYoutubePlaylist resolver');
     try {
       const apiAccessToken = ctx.req.api_accessToken;
 
-      console.log('apiAccessToken', apiAccessToken);
-      const result = await this.playlistService.convertToYoutubePlaylist(
+      return await this.playlistService.convertToYoutubePlaylist(
         user?.id || null,
         apiAccessToken,
         listJSON,
       );
-      console.log('result', result);
-      return result;
     } catch (error) {
-      console.log('convertToYoutubePlaylist error', error);
-      if (error instanceof OAuthenticationError) {
-        if (!user?.id) {
-          throw new OAuthorizationError(error.message);
-        }
-        const key = `${user.id}:${ApiDomain.YOUTUBE}`;
-        if (!this.retryAttempts.has(key)) {
-          this.retryAttempts.set(key, { count: 0, inProgress: false });
-        }
-
-        const attempt = this.retryAttempts.get(key)!;
-
-        if (attempt.count >= this.MAX_RETRY_ATTEMPTS) {
-          throw new OAuthorizationError(error.message);
-        }
-
-        attempt.count += 1;
-
-        if (!attempt.inProgress) {
-          attempt.inProgress = true;
-          try {
-            const oauthResponse =
-              await this.googleAuthService.refreshAccessToken(user.id);
-            this.setAccessTokenToContext(
-              ctx,
-              ApiDomain.YOUTUBE,
-              oauthResponse.access_token,
-            );
-
-            attempt.inProgress = false;
-            return this.convertToYoutubePlaylist(
-              ctx,
-              user,
-              listJSON,
-              state,
-              authorizationCode,
-            );
-          } catch (error) {
-            attempt.inProgress = false;
-            throw new OAuthorizationError(
-              'Failed to refresh token: ' + error.message,
-            );
-          }
-        } else {
-          throw new OAuthorizationError('Authentication retry in progress');
-        }
-      }
-
-      if (error instanceof PlatformError) {
-        throw new BadRequestException(error.message);
-      }
-
-      throw error;
+      return this.handleConversionError(
+        error,
+        user,
+        ctx,
+        ApiDomain.YOUTUBE,
+        () => this.googleAuthService.refreshAccessToken(user.id),
+        () =>
+          this.convertToYoutubePlaylist(
+            ctx,
+            user,
+            listJSON,
+            state,
+            authorizationCode,
+          ),
+      );
     }
   }
 
+  /**
+   * @description
+   * 1. set accessToken to context
+   * @param ctx
+   * @param apiDomain
+   * @param accessToken
+   */
   private setAccessTokenToContext(
     ctx: GqlContext,
     apiDomain: ApiDomain,
@@ -362,5 +292,79 @@ export class PlaylistResolver {
       path: '/',
       maxAge: 24 * 60 * 60 * 1000,
     });
+  }
+
+  /**
+   * @description
+   * 1. if error is OAuthenticationError, retry with new accessToken
+   * 2. if error is PlatformError, throw BadRequestException
+   * 3. if error is other, throw error
+   * @param error
+   * @param user
+   * @param ctx
+   * @param apiDomain
+   * @param refreshTokenFn
+   * @param retryFn
+   * @returns ConvertedPlaylist | AuthRequiredResponse
+   */
+  private async handleConversionError(
+    error: any,
+    user: UserInput,
+    ctx: GqlContext,
+    apiDomain: ApiDomain,
+    refreshTokenFn: () => Promise<OAuth2TokenResponse>,
+    retryFn: () => Promise<ConvertedPlaylist | AuthRequiredResponse>,
+  ): Promise<ConvertedPlaylist | AuthRequiredResponse> {
+    if (error instanceof OAuthenticationError) {
+      if (!user?.id) {
+        throw new OAuthorizationError(error.message);
+      }
+
+      const key = `${user.id}:${apiDomain}`;
+      if (!this.retryAttempts.has(key)) {
+        this.retryAttempts.set(key, { count: 0, inProgress: false });
+      }
+
+      const attempt = this.retryAttempts.get(key)!;
+
+      if (attempt.count >= this.MAX_RETRY_ATTEMPTS) {
+        throw new OAuthorizationError(
+          `Failed to refresh access token after ${this.MAX_RETRY_ATTEMPTS} attempts`,
+        );
+      }
+
+      if (attempt.inProgress) {
+        throw new OAuthorizationError(
+          'Authentication retry is already in progress',
+        );
+      }
+
+      try {
+        attempt.inProgress = true;
+        attempt.count += 1;
+
+        const tokenResponse = await refreshTokenFn();
+
+        this.setAccessTokenToContext(
+          ctx,
+          apiDomain,
+          tokenResponse.access_token,
+        );
+
+        return await retryFn();
+      } catch (retryError) {
+        throw new OAuthorizationError(
+          `Failed to refresh access token: ${retryError.message}`,
+        );
+      } finally {
+        attempt.inProgress = false;
+      }
+    }
+
+    if (error instanceof PlatformError) {
+      throw new BadRequestException(error.message);
+    }
+
+    throw error;
   }
 }

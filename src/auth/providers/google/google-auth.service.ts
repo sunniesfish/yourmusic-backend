@@ -87,7 +87,6 @@ export class GoogleAuthService extends OAuth2Service {
   ): Promise<OAuth2TokenResponse> {
     const oauth2Client = this.createOAuthClient();
     const { tokens } = await oauth2Client.getToken(authResponse.code);
-    console.log('// getToken tokens', tokens);
     if (userId && tokens.refresh_token) {
       await this.youtubeCredentialsRepository.save({
         userId,

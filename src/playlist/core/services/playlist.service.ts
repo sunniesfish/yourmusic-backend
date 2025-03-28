@@ -49,7 +49,6 @@ export class PlaylistService {
         accessToken,
         playlistJSON,
       );
-    console.log('playlist service convertedPlaylist', convertedPlaylist);
     return convertedPlaylist;
   }
 
@@ -61,19 +60,16 @@ export class PlaylistService {
     const isSpotify = this.spotifyService.isSpotifyUrl(link);
 
     if (isSpotify) {
-      console.log('isSpotify', isSpotify);
       return await this.spotifyService.readSpotifyPlaylist(link);
     }
 
     const isYoutube = this.youtubeService.isYoutubeUrl(link);
 
     if (isYoutube) {
-      console.log('isYoutube', isYoutube);
       return await this.youtubeService.readYoutubePlaylist(link);
     }
 
     if (!isSpotify && !isYoutube) {
-      console.log('not spotify or youtube');
       throw new Error('Please provide a valid Spotify or YouTube URL');
     }
   }

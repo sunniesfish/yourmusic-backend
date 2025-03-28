@@ -35,7 +35,6 @@ export class YouTubeService {
       accessToken,
       null,
     );
-    console.log('oauth2Client', oauth2Client);
     return await operation(oauth2Client);
   }
 
@@ -54,8 +53,6 @@ export class YouTubeService {
         );
       },
     );
-
-    console.log('in youtube service playlistId', playlistId);
 
     await this.processSongs(userId, playlistId, playlistJSON, accessToken);
     return {
