@@ -276,13 +276,11 @@ export class PlaylistResolver {
     @Args('authorizationCode', { type: () => String, nullable: true })
     authorizationCode?: string,
   ): Promise<ConvertedPlaylist | AuthRequiredResponse> {
-    console.log('convertToYoutubePlaylist');
-    console.log('ctx.req.api_accessToken', ctx.req.api_accessToken);
-    console.log('user?.id', user?.id);
-    console.log('authorizationCode', authorizationCode);
+    console.log('convertToYoutubePlaylist resolver');
     try {
       const apiAccessToken = ctx.req.api_accessToken;
 
+      console.log('apiAccessToken', apiAccessToken);
       const result = await this.playlistService.convertToYoutubePlaylist(
         user?.id || null,
         apiAccessToken,

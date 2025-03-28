@@ -35,6 +35,7 @@ export class YouTubeService {
       accessToken,
       null,
     );
+    console.log('oauth2Client', oauth2Client);
     return await operation(oauth2Client);
   }
 
