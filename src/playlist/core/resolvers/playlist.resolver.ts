@@ -283,11 +283,13 @@ export class PlaylistResolver {
     try {
       const apiAccessToken = ctx.req.api_accessToken;
 
-      return await this.playlistService.convertToYoutubePlaylist(
+      const result = await this.playlistService.convertToYoutubePlaylist(
         user?.id || null,
         apiAccessToken,
         listJSON,
       );
+      console.log('result', result);
+      return result;
     } catch (error) {
       console.log('convertToYoutubePlaylist error', error);
       if (error instanceof OAuthenticationError) {
