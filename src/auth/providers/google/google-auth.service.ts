@@ -87,8 +87,7 @@ export class GoogleAuthService extends OAuth2Service {
   ): Promise<OAuth2TokenResponse> {
     const oauth2Client = this.createOAuthClient();
     const { tokens } = await oauth2Client.getToken(authResponse.code);
-    console.log('in getToken', tokens);
-
+    console.log('// getToken tokens', tokens);
     if (userId && tokens.refresh_token) {
       await this.youtubeCredentialsRepository.save({
         userId,
@@ -112,15 +111,12 @@ export class GoogleAuthService extends OAuth2Service {
    * @returns OAuth2TokenResponse
    */
   async refreshAccessToken(userId: string): Promise<OAuth2TokenResponse> {
-    console.log('start refreshAccessToken');
     const oauth2Client = this.createOAuthClient();
     try {
       const credentials = await this.youtubeCredentialsRepository.findOne({
         where: { userId },
       });
-      console.log('credentials', credentials);
       if (!credentials) {
-        console.log('credentials not found. throw oauthorization error');
         throw new OAuthorizationError('Refresh token not found');
       }
 
@@ -129,7 +125,6 @@ export class GoogleAuthService extends OAuth2Service {
       });
       const { credentials: newCredentials } =
         await oauth2Client.refreshAccessToken();
-      console.log('newCredentials', newCredentials);
 
       await this.youtubeCredentialsRepository.update(userId, {
         refreshToken: newCredentials.refresh_token,
