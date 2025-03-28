@@ -245,6 +245,9 @@ export class PlaylistResolver {
     try {
       const apiAccessToken = ctx.req.api_accessToken;
       console.log('apiAccessToken', apiAccessToken);
+      if (!apiAccessToken) {
+        throw new OAuthenticationError('No access token found');
+      }
 
       return await this.playlistService.convertToYoutubePlaylist(
         user?.id || null,
