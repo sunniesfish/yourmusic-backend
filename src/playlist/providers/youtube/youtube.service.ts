@@ -8,6 +8,7 @@ import { GoogleAuthService } from 'src/auth/providers/google/google-auth.service
 import { YouTubeConfigService } from './client/youtubeConfig';
 import { YouTubeConfig } from './client/youtubeConfig';
 import { YouTubeApiClient } from './client/youtube-api.client';
+import { OAuth2Client } from 'google-auth-library';
 @Injectable()
 export class YouTubeService {
   private config: YouTubeConfig;
@@ -28,8 +29,9 @@ export class YouTubeService {
   private async executeWithAuth<T>(
     userId: string | null,
     accessToken: string,
-    operation: (oauth2Client: any) => Promise<T>,
+    operation: (oauth2Client: OAuth2Client) => Promise<T>,
   ): Promise<T> {
+    console.log('--- youtube service executeWithAuth ---');
     const oauth2Client = await this.googleAuthService.getOAuthClient(
       userId,
       accessToken,
@@ -48,6 +50,10 @@ export class YouTubeService {
       userId,
       accessToken,
       async (oauth2Client) => {
+        console.log(
+          '--- youtube service createPlaylist ---',
+          oauth2Client.credentials,
+        );
         return this.youtubeApiClient.createPlaylist(
           oauth2Client,
           'New Playlist ' + new Date().toISOString(),

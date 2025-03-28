@@ -48,6 +48,7 @@ export class YouTubeApiClient {
     url: string,
     options: RequestInit = {},
   ): Promise<T> {
+    console.log('--- youtube api client makeRequest ---');
     const response = await fetch(url, {
       ...options,
       headers: {
