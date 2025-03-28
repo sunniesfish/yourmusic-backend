@@ -38,6 +38,7 @@ export class OAuthInterceptor implements NestInterceptor {
     context: ExecutionContext,
     next: CallHandler,
   ): Promise<Observable<any>> {
+    console.log('in interceptor');
     const gqlContext = GqlExecutionContext.create(context);
     const ctx = gqlContext.getContext<GqlContext>();
     const apiDomain = this.reflector.get<ApiDomain>(
@@ -56,6 +57,7 @@ export class OAuthInterceptor implements NestInterceptor {
     console.log('accessToken', accessToken);
     console.log('userId', userId);
     console.log('authCode', authCode);
+    console.log('apiDomain', apiDomain);
 
     if (accessToken) {
       console.log('accessToken found');
@@ -64,13 +66,13 @@ export class OAuthInterceptor implements NestInterceptor {
     }
 
     if (authCode) {
+      console.log('authCode found');
       try {
         const authResponse = await this.getNewToken(
           apiDomain,
           authCode,
           userId,
         );
-        console.log('authResponse', authResponse);
         this.setAccessTokenToContext(ctx, apiDomain, authResponse.access_token);
         return next.handle();
       } catch (error) {
@@ -81,12 +83,13 @@ export class OAuthInterceptor implements NestInterceptor {
     }
 
     if (userId) {
+      console.log('userId found');
       try {
         const authResponse = await this.refreshAccessToken(apiDomain, userId);
+        console.log('in interceptor authResponse', authResponse);
         this.setAccessTokenToContext(ctx, apiDomain, authResponse.access_token);
         return next.handle();
       } catch (error) {
-        console.log('refreshAccessToken error', error);
         throw error;
       }
     }
