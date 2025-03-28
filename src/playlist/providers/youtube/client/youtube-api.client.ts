@@ -82,6 +82,7 @@ export class YouTubeApiClient {
     oauth2Client: OAuth2Client,
     name: string,
   ): Promise<string> {
+    console.log('--- youtube api client createPlaylist ---');
     return this.apiRateLimiter.addRequest(async () => {
       const data = await this.makeRequest<YouTubePlaylistResponse>(
         oauth2Client,
@@ -96,6 +97,7 @@ export class YouTubeApiClient {
           }),
         },
       );
+      console.log('--- youtube api client createPlaylist ---', data);
       return data.id;
     });
   }
