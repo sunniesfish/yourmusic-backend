@@ -40,6 +40,8 @@ export class OAuthErrorInterceptor implements NestInterceptor {
         console.log('error-in interceptor catchError', error);
         if (error instanceof OAuthorizationError) {
           console.log('error is instance of OAuthorizationError');
+          console.log('apiDomain', apiDomain);
+          console.log('gqlContext', gqlContext);
           if (apiDomain === ApiDomain.SPOTIFY) {
             return of({
               needsAuth: true,
