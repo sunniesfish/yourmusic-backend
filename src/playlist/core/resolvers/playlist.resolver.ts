@@ -291,6 +291,7 @@ export class PlaylistResolver {
         listJSON,
       );
     } catch (error) {
+      console.log('convertToYoutubePlaylist error', error);
       if (error instanceof OAuthenticationError) {
         if (!user?.id) {
           throw new OAuthorizationError(error.message);
