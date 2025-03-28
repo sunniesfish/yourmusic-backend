@@ -43,6 +43,7 @@ export class YouTubeService {
     accessToken: string,
     playlistJSON: PlaylistJSON[],
   ): Promise<ConvertedPlaylist> {
+    console.log('--- youtube service convertToYoutubePlaylist ---');
     const playlistId = await this.executeWithAuth(
       userId,
       accessToken,

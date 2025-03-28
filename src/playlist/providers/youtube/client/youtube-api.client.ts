@@ -56,6 +56,7 @@ export class YouTubeApiClient {
         ...options.headers,
       },
     });
+    console.log('--- youtube api client makeRequest ---', response);
     const data: PlatformResponse<T> = await response.json();
     if (response.status === 401 || response.status === 403) {
       throw new OAuthenticationError(
