@@ -52,38 +52,42 @@ export class SpotifyAuthService extends OAuth2Service {
     authResponse: OAuth2AuthResponse,
     userId: string,
   ): Promise<OAuth2TokenResponse> {
-    const params = new URLSearchParams({
-      grant_type: 'authorization_code',
-      code: authResponse.code,
-      redirect_uri: this.config.redirectUri,
-    });
-
-    const response = await fetch(this.config.tokenEndpoint, {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${Buffer.from(
-          `${this.config.clientId}:${this.config.clientSecret}`,
-        ).toString('base64')}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: params,
-    });
-
-    const tokens = await response.json();
-
-    if (userId && tokens.refresh_token) {
-      const result = await this.spotifyTokenRepository.save({
-        userId,
-        refreshToken: tokens.refresh_token,
+    try {
+      const params = new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: authResponse.code,
+        redirect_uri: this.config.redirectUri,
       });
-    }
 
-    return {
-      access_token: tokens.access_token,
-      token_type: tokens.token_type,
-      expires_in: tokens.expires_in,
-      refresh_token: tokens.refresh_token,
-    };
+      const response = await fetch(this.config.tokenEndpoint, {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${Buffer.from(
+            `${this.config.clientId}:${this.config.clientSecret}`,
+          ).toString('base64')}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: params,
+      });
+
+      const tokens = await response.json();
+
+      if (userId && tokens.refresh_token) {
+        const result = await this.spotifyTokenRepository.save({
+          userId,
+          refreshToken: tokens.refresh_token,
+        });
+      }
+
+      return {
+        access_token: tokens.access_token,
+        token_type: tokens.token_type,
+        expires_in: tokens.expires_in,
+        refresh_token: tokens.refresh_token,
+      };
+    } catch (error) {
+      throw new OAuthorizationError('Failed to get token');
+    }
   }
 
   /**

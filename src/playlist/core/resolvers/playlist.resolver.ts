@@ -272,26 +272,10 @@ export class PlaylistResolver {
    * @description
    * 1. set accessToken to context
    * @param ctx
-   * @param apiDomain
    * @param accessToken
    */
-  private setAccessTokenToContext(
-    ctx: GqlContext,
-    apiDomain: ApiDomain,
-    accessToken: string,
-  ) {
+  private setAccessTokenToContext(ctx: GqlContext, accessToken: string) {
     ctx.req.api_accessToken = accessToken;
-    ctx.res.cookie(`${apiDomain}_access_token`, accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      domain:
-        process.env.NODE_ENV === 'production'
-          ? process.env.COOKIE_DOMAIN
-          : 'localhost',
-      path: '/',
-      maxAge: 24 * 60 * 60 * 1000,
-    });
   }
 
   /**
@@ -345,11 +329,7 @@ export class PlaylistResolver {
 
         const tokenResponse = await refreshTokenFn();
 
-        this.setAccessTokenToContext(
-          ctx,
-          apiDomain,
-          tokenResponse.access_token,
-        );
+        this.setAccessTokenToContext(ctx, tokenResponse.access_token);
 
         return await retryFn();
       } catch (retryError) {

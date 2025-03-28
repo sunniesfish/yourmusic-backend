@@ -38,6 +38,7 @@ export class OAuthInterceptor implements NestInterceptor {
     context: ExecutionContext,
     next: CallHandler,
   ): Promise<Observable<any>> {
+    console.log('===Start OAuthInterceptor');
     const gqlContext = GqlExecutionContext.create(context);
     const ctx = gqlContext.getContext<GqlContext>();
     const apiDomain = this.reflector.get<ApiDomain>(
@@ -53,6 +54,7 @@ export class OAuthInterceptor implements NestInterceptor {
     const authCode = gqlContext.getArgs().authorizationCode;
 
     if (authCode) {
+      console.log('if authCode exists');
       try {
         const authResponse = await this.getNewToken(
           apiDomain,
@@ -62,13 +64,12 @@ export class OAuthInterceptor implements NestInterceptor {
         this.setAccessTokenToContext(ctx, authResponse.access_token);
         return next.handle();
       } catch (error) {
-        ctx.req.needsAuthUrl = true;
+        throw error;
       }
-    } else {
-      ctx.req.needsAuthUrl = true;
     }
 
     if (userId) {
+      console.log('if userId exists');
       try {
         const authResponse = await this.refreshAccessToken(apiDomain, userId);
         this.setAccessTokenToContext(ctx, authResponse.access_token);
@@ -94,19 +95,23 @@ export class OAuthInterceptor implements NestInterceptor {
     authCode: string,
     userId: string | undefined,
   ): Promise<OAuth2TokenResponse> {
-    if (apiDomain === ApiDomain.YOUTUBE) {
-      return await this.googleAuthService.getToken(
-        { code: authCode, state: 'state' },
-        userId,
-      );
+    try {
+      if (apiDomain === ApiDomain.YOUTUBE) {
+        return await this.googleAuthService.getToken(
+          { code: authCode, state: 'state' },
+          userId,
+        );
+      }
+      if (apiDomain === ApiDomain.SPOTIFY) {
+        return await this.spotifyAuthService.getToken(
+          { code: authCode, state: 'state' },
+          userId,
+        );
+      }
+      throw new UnauthorizedException('Invalid API domain');
+    } catch (error) {
+      throw new OAuthorizationError('Failed to get token');
     }
-    if (apiDomain === ApiDomain.SPOTIFY) {
-      return await this.spotifyAuthService.getToken(
-        { code: authCode, state: 'state' },
-        userId,
-      );
-    }
-    throw new UnauthorizedException('Invalid API domain');
   }
 
   private async refreshAccessToken(
@@ -124,6 +129,5 @@ export class OAuthInterceptor implements NestInterceptor {
 
   private setAccessTokenToContext(ctx: GqlContext, accessToken: string) {
     ctx.req.api_accessToken = accessToken;
-    ctx.req.needsAuthUrl = false;
   }
 }

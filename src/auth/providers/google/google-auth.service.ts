@@ -86,22 +86,26 @@ export class GoogleAuthService extends OAuth2Service {
     userId: string | null,
   ): Promise<OAuth2TokenResponse> {
     const oauth2Client = this.createOAuthClient();
-    const { tokens } = await oauth2Client.getToken(authResponse.code);
-    if (userId && tokens.refresh_token) {
-      await this.youtubeCredentialsRepository.save({
-        userId,
-        accessToken: tokens.access_token,
-        refreshToken: tokens.refresh_token,
-        expiryDate: tokens.expiry_date,
-      });
-    }
+    try {
+      const { tokens } = await oauth2Client.getToken(authResponse.code);
+      if (userId && tokens.refresh_token) {
+        await this.youtubeCredentialsRepository.save({
+          userId,
+          accessToken: tokens.access_token,
+          refreshToken: tokens.refresh_token,
+          expiryDate: tokens.expiry_date,
+        });
+      }
 
-    return {
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
-      expires_in: tokens.expiry_date,
-      token_type: 'Bearer',
-    };
+      return {
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+        expires_in: tokens.expiry_date,
+        token_type: 'Bearer',
+      };
+    } catch (error) {
+      throw new OAuthorizationError('Failed to get token');
+    }
   }
 
   /**
