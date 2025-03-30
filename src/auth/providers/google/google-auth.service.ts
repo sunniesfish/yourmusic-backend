@@ -48,6 +48,7 @@ export class GoogleAuthService extends OAuth2Service {
     if (!userId) {
       oauth2Client.setCredentials({
         access_token: accessToken,
+        scope: GOOGLE_OAUTH_SCOPES.YOUTUBE.join(' '),
       });
       return oauth2Client;
     }
@@ -55,6 +56,7 @@ export class GoogleAuthService extends OAuth2Service {
     oauth2Client.setCredentials({
       access_token: accessToken,
       refresh_token: refreshToken,
+      scope: GOOGLE_OAUTH_SCOPES.YOUTUBE.join(' '),
     });
 
     return oauth2Client;
@@ -65,6 +67,7 @@ export class GoogleAuthService extends OAuth2Service {
    */
   getAuthUrl(options?: OAuth2AuthOptions): string {
     const oauth2Client = this.createOAuthClient();
+    console.log('scope', GOOGLE_OAUTH_SCOPES.YOUTUBE);
     return oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: GOOGLE_OAUTH_SCOPES.YOUTUBE,
