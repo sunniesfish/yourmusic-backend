@@ -1,30 +1,22 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   ConvertedPlaylist,
   PlaylistJSON,
 } from '../../common/dto/playlists.dto';
 import { ScraperService } from '../scraper/scraper.service';
 import { GoogleAuthService } from 'src/auth/providers/google/google-auth.service';
-import { YouTubeConfigService } from './client/youtubeConfig';
-import { YouTubeConfig } from './client/youtubeConfig';
 import { YouTubeApiClient } from './client/youtube-api.client';
 import { OAuth2Client } from 'google-auth-library';
 @Injectable()
 export class YouTubeService {
-  private config: YouTubeConfig;
-
   constructor(
-    @Inject(forwardRef(() => YouTubeConfigService))
-    private readonly configService: YouTubeConfigService,
     @Inject()
     private readonly youtubeApiClient: YouTubeApiClient,
     @Inject()
     private readonly scraperService: ScraperService,
     @Inject()
     private readonly googleAuthService: GoogleAuthService,
-  ) {
-    this.config = this.configService.getConfig();
-  }
+  ) {}
 
   private async executeWithAuth<T>(
     userId: string | null,

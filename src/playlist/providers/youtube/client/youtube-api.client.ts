@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import ApiRateLimiter from '@sunniesfish/api-rate-limiter';
-import { YouTubeConfig, YouTubeConfigService } from './youtubeConfig';
+import { createYouTubeApiConfig } from './youtubeConfig';
 import { OAuth2Client } from 'google-auth-library';
 import { PlatformError } from 'src/playlist/common/errors/platform.errors';
 import { OAuthenticationError } from 'src/auth/common/errors/oauth.errors';
 import { PlatformResponse } from 'src/playlist/common/interfaces/platform.interface';
+import { ConfigService } from '@nestjs/config';
 
 interface YouTubePlaylistResponse {
   id: string;
@@ -27,10 +28,9 @@ interface YouTubeSearchResponse {
 @Injectable()
 export class YouTubeApiClient {
   private readonly apiRateLimiter: ApiRateLimiter<any>;
-  private readonly config: YouTubeConfig;
+  private readonly config = createYouTubeApiConfig(this.configService);
 
-  constructor(private readonly configService: YouTubeConfigService) {
-    this.config = configService.getConfig();
+  constructor(private readonly configService: ConfigService) {
     this.apiRateLimiter = new ApiRateLimiter(
       {
         maxPerSecond: this.config.apiLimitPerSecond,
@@ -78,51 +78,29 @@ export class YouTubeApiClient {
     return data as T;
   }
 
-  // async createPlaylist(
-  //   oauth2Client: OAuth2Client,
-  //   name: string,
-  // ): Promise<string> {
-  //   console.log('--- youtube api client createPlaylist ---');
-  //   return this.apiRateLimiter.addRequest(async () => {
-  //     console.log('--- youtube api client createPlaylist ---', oauth2Client);
-  //     const data = await this.makeRequest<YouTubePlaylistResponse>(
-  //       oauth2Client,
-  //       `${this.config.baseUrl}/playlists?part=snippet`,
-  //       {
-  //         method: 'POST',
-  //         body: JSON.stringify({
-  //           snippet: {
-  //             title: name,
-  //             description: 'Converted playlist from another platform',
-  //           },
-  //         }),
-  //       },
-  //     );
-  //     console.log('--- youtube api client createPlaylist ---', data);
-  //     return data.id;
-  //   });
-  // }
-
   async createPlaylist(
     oauth2Client: OAuth2Client,
     name: string,
   ): Promise<string> {
-    console.log('using direct request...');
-    const data = await this.makeRequest<YouTubePlaylistResponse>(
-      oauth2Client,
-      `${this.config.baseUrl}/playlists?part=snippet`,
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          snippet: {
-            title: name,
-            description: 'Converted playlist',
-          },
-        }),
-      },
-    );
-    console.log('--- youtube api client createPlaylist ---', data);
-    return data.id;
+    console.log('--- youtube api client createPlaylist ---');
+    return this.apiRateLimiter.addRequest(async () => {
+      console.log('--- youtube api client createPlaylist ---', oauth2Client);
+      const data = await this.makeRequest<YouTubePlaylistResponse>(
+        oauth2Client,
+        `${this.config.baseUrl}/playlists?part=snippet`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            snippet: {
+              title: name,
+              description: 'Converted playlist from another platform',
+            },
+          }),
+        },
+      );
+      console.log('--- youtube api client createPlaylist ---', data);
+      return data.id;
+    });
   }
 
   async searchVideo(
