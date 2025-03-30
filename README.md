@@ -18,12 +18,6 @@ YourMusic은 사용자의 음악 플레이리스트를 관리하고 YouTube와 S
 - **TypeORM** - MySQL 데이터베이스 ORM
 - **JWT** - 사용자 인증 및 권한 관리
 
-### 인증 및 외부 서비스 연동
-
-- **OAuth2** - Google/YouTube 및 Spotify 인증 통합
-- **Passport** - JWT 기반 인증 전략 구현
-- **bcrypt** - 비밀번호 해싱 처리
-
 ### 웹 스크래핑 및 데이터 처리
 
 - **Puppeteer** - 브라우저 자동화를 통한 웹 스크래핑
@@ -33,6 +27,8 @@ YourMusic은 사용자의 음악 플레이리스트를 관리하고 YouTube와 S
 
 - **Docker / Docker Compose** - 컨테이너화 및 개발/배포 환경 구성
 - **MySQL** - 관계형 데이터베이스
+- **Google Cloud Platform** - 서버 배포 및 클라우드 서비스(cloud run, cloud run jobs, cloud sql, secret manager)
+- **Github Actions** - CI/CD 파이프라인 구현
 
 ## 주요 모듈
 
@@ -82,13 +78,14 @@ $ docker-compose up -d
 
 ## 환경 변수 설정
 
-애플리케이션은 `.env` 파일 또는 Docker 환경 변수를 통해 다음 설정을 필요로 합니다:
+애플리케이션은 `.env` 파일 또는 Docker 환경 변수를 통해 다음 설정을 필요로 합니다 (cloud run 환경에서는 secret manager에서 설정):
 
 ### 기본 설정
 
 - `NODE_ENV` - 실행 환경 (development, production)
-- `PORT` - 서버 포트
+- `PORT` - 서버 포트 (cloud run 환경에서는 자동으로 할당됨)
 - `CORS_ORIGIN` - CORS 허용 오리진
+- `COOKIE_DOMAIN` - 쿠키 도메인
 
 ### 데이터베이스
 
@@ -132,32 +129,6 @@ $ docker-compose up -d
 - `MAX_BROWSERS_PER_WORKER` - 워커당 최대 브라우저 수
 - `MAX_CONCURRENT_PAGES` - 최대 동시 페이지 수
 - `WORKER_TIMEOUT` - 워커 타임아웃(ms)
-
-## GraphQL API
-
-GraphQL 플레이그라운드를 통해 API를 테스트하고 문서를 확인할 수 있습니다. 개발 환경에서는 `http://localhost:{PORT}/graphql`에서 접근 가능합니다.
-
-### 주요 API 엔드포인트
-
-**인증**
-
-- `signUp` - 회원가입
-- `signIn` - 로그인
-- `signOut` - 로그아웃
-- `checkId` - 아이디 중복 확인
-- `changePassword` - 비밀번호 변경
-
-**플레이리스트**
-
-- `playlist` - 단일 플레이리스트 조회
-- `playlistsPage` - 페이지네이션된 플레이리스트 목록 조회
-- `savePlaylist` - 플레이리스트 저장
-- `updatePlaylist` - 플레이리스트 업데이트
-- `deletePlaylist` - 플레이리스트 삭제
-
-**통계**
-
-- `statistic` - 사용자 음악 통계 조회
 
 ## 마이그레이션
 

@@ -29,7 +29,6 @@ export class OAuthErrorInterceptor implements NestInterceptor {
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    console.log('in oauth-error.interceptor');
     const gqlContext = GqlExecutionContext.create(context);
     const state = gqlContext.getArgs().state;
     const apiDomain = this.reflector.get<ApiDomain>(
@@ -38,7 +37,6 @@ export class OAuthErrorInterceptor implements NestInterceptor {
     );
     return next.handle().pipe(
       catchError((error) => {
-        console.log('catchError in oauth-error.interceptor', error);
         if (error instanceof OAuthorizationError) {
           if (apiDomain === ApiDomain.SPOTIFY) {
             return of({

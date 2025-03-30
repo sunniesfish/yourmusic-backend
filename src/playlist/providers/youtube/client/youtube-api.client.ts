@@ -48,7 +48,6 @@ export class YouTubeApiClient {
     url: string,
     options: RequestInit = {},
   ): Promise<T> {
-    console.log('--- youtube api client makeRequest ---');
     const response = await fetch(url, {
       ...options,
       headers: {
@@ -57,7 +56,6 @@ export class YouTubeApiClient {
         ...options.headers,
       },
     });
-    console.log('--- youtube api client makeRequest ---', response);
     const data: PlatformResponse<T> = await response.json();
     if (response.status === 401 || response.status === 403) {
       throw new OAuthenticationError(
@@ -82,9 +80,7 @@ export class YouTubeApiClient {
     oauth2Client: OAuth2Client,
     name: string,
   ): Promise<string> {
-    console.log('--- youtube api client createPlaylist ---');
     return this.apiRateLimiter.addRequest(async () => {
-      console.log('--- youtube api client createPlaylist ---', oauth2Client);
       const data = await this.makeRequest<YouTubePlaylistResponse>(
         oauth2Client,
         `${this.config.baseUrl}/playlists?part=snippet`,
@@ -98,7 +94,6 @@ export class YouTubeApiClient {
           }),
         },
       );
-      console.log('--- youtube api client createPlaylist ---', data);
       return data.id;
     });
   }

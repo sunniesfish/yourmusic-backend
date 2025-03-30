@@ -97,7 +97,6 @@ export class PlaylistResolver {
     @Info() info: GraphQLResolveInfo,
   ) {
     if (user.id === undefined) {
-      console.log('user.id is undefined');
       throw new ForbiddenException();
     }
 
@@ -241,10 +240,8 @@ export class PlaylistResolver {
     @Args('authorizationCode', { type: () => String, nullable: true })
     authorizationCode?: string,
   ): Promise<ConvertedPlaylist | AuthRequiredResponse> {
-    console.log('--- playlist resolver convertToYoutubePlaylist ---');
     try {
       const apiAccessToken = ctx.req.api_accessToken;
-      console.log('apiAccessToken', apiAccessToken);
       if (!apiAccessToken) {
         throw new OAuthenticationError('No access token found');
       }
@@ -304,7 +301,6 @@ export class PlaylistResolver {
     refreshTokenFn: () => Promise<OAuth2TokenResponse>,
     retryFn: () => Promise<ConvertedPlaylist | AuthRequiredResponse>,
   ): Promise<ConvertedPlaylist | AuthRequiredResponse> {
-    console.log('--- handleConversionError ---');
     if (error instanceof OAuthenticationError) {
       if (!user?.id) {
         throw new OAuthorizationError(error.message);

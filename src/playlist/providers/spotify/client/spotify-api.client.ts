@@ -36,7 +36,7 @@ export class SpotifyApiClient {
         maxQueueSize: this.config.apiLimitQueueSize,
       },
       (error) => {
-        console.log('Spotify API Rate Limiter Error:', error);
+        console.error('Spotify API Rate Limiter Error:', error);
       },
     );
   }

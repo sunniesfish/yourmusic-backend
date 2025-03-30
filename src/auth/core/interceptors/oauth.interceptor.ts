@@ -38,7 +38,6 @@ export class OAuthInterceptor implements NestInterceptor {
     context: ExecutionContext,
     next: CallHandler,
   ): Promise<Observable<any>> {
-    console.log('===Start OAuthInterceptor');
     const gqlContext = GqlExecutionContext.create(context);
     const ctx = gqlContext.getContext<GqlContext>();
     const apiDomain = this.reflector.get<ApiDomain>(
@@ -54,7 +53,6 @@ export class OAuthInterceptor implements NestInterceptor {
     const authCode = gqlContext.getArgs().authorizationCode;
 
     if (authCode) {
-      console.log('if authCode exists');
       try {
         const authResponse = await this.getNewToken(
           apiDomain,
@@ -69,7 +67,6 @@ export class OAuthInterceptor implements NestInterceptor {
     }
 
     if (userId) {
-      console.log('if userId exists');
       try {
         const authResponse = await this.refreshAccessToken(apiDomain, userId);
         this.setAccessTokenToContext(ctx, authResponse.access_token);

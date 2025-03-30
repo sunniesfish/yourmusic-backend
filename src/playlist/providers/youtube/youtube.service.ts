@@ -23,15 +23,10 @@ export class YouTubeService {
     accessToken: string,
     operation: (oauth2Client: OAuth2Client) => Promise<T>,
   ): Promise<T> {
-    console.log('--- youtube service executeWithAuth ---');
     const oauth2Client = await this.googleAuthService.getOAuthClient(
       userId,
       accessToken,
       null,
-    );
-    console.log(
-      '--- youtube service executeWithAuth ---',
-      oauth2Client ? oauth2Client.credentials : 'no oauth2Client',
     );
     return await operation(oauth2Client);
   }
@@ -41,16 +36,10 @@ export class YouTubeService {
     accessToken: string,
     playlistJSON: PlaylistJSON[],
   ): Promise<ConvertedPlaylist> {
-    console.log('--- youtube service convertToYoutubePlaylist ---');
     const playlistId = await this.executeWithAuth(
       userId,
       accessToken,
       async (oauth2Client) => {
-        console.log(
-          '--- youtube service createPlaylist ---',
-          JSON.stringify(oauth2Client),
-        );
-        console.log('scope', oauth2Client.credentials.scope);
         return this.youtubeApiClient.createPlaylist(
           oauth2Client,
           'New Playlist ' + new Date().toISOString(),

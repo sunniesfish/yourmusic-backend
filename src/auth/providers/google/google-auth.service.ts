@@ -67,7 +67,6 @@ export class GoogleAuthService extends OAuth2Service {
    */
   getAuthUrl(options?: OAuth2AuthOptions): string {
     const oauth2Client = this.createOAuthClient();
-    console.log('scope', GOOGLE_OAUTH_SCOPES.YOUTUBE);
     return oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: GOOGLE_OAUTH_SCOPES.YOUTUBE,
