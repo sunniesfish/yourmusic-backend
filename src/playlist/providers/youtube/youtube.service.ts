@@ -37,6 +37,10 @@ export class YouTubeService {
       accessToken,
       null,
     );
+    console.log(
+      '--- youtube service executeWithAuth ---',
+      oauth2Client ? oauth2Client.credentials : 'no oauth2Client',
+    );
     return await operation(oauth2Client);
   }
 
@@ -50,10 +54,7 @@ export class YouTubeService {
       userId,
       accessToken,
       async (oauth2Client) => {
-        console.log(
-          '--- youtube service createPlaylist ---',
-          oauth2Client.credentials,
-        );
+        console.log('--- youtube service createPlaylist ---', oauth2Client);
         return this.youtubeApiClient.createPlaylist(
           oauth2Client,
           'New Playlist ' + new Date().toISOString(),
