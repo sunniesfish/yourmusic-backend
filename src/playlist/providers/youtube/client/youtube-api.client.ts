@@ -38,7 +38,7 @@ export class YouTubeApiClient {
         maxQueueSize: this.config.apiLimitQueueSize,
       },
       (error) => {
-        console.log('apiRateLimiter error', error);
+        throw new PlatformError('Error in apiRateLimiter', error as string);
       },
     );
   }
@@ -84,6 +84,7 @@ export class YouTubeApiClient {
   ): Promise<string> {
     console.log('--- youtube api client createPlaylist ---');
     return this.apiRateLimiter.addRequest(async () => {
+      console.log('--- youtube api client createPlaylist ---', oauth2Client);
       const data = await this.makeRequest<YouTubePlaylistResponse>(
         oauth2Client,
         `${this.config.baseUrl}/playlists?part=snippet`,
