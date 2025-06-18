@@ -29,16 +29,10 @@ export class SpotifyApiClient {
   private readonly config = createSpotifyApiConfig(this.configService);
 
   constructor(private readonly configService: ConfigService) {
-    this.apiRateLimiter = new ApiRateLimiter(
-      {
-        maxPerSecond: this.config.apiLimitPerSecond,
-        maxPerMinute: this.config.apiLimitPerMinute,
-        maxQueueSize: this.config.apiLimitQueueSize,
-      },
-      (error) => {
-        console.error('Spotify API Rate Limiter Error:', error);
-      },
-    );
+    this.apiRateLimiter = new ApiRateLimiter({
+      maxPerSecond: this.config.apiLimitPerSecond,
+      maxPerMinute: this.config.apiLimitPerMinute,
+    });
   }
 
   private async makeRequest<T>(
@@ -86,27 +80,34 @@ export class SpotifyApiClient {
     playlistUri: string;
     playlistName: string;
   }> {
-    return this.apiRateLimiter.addRequest(async () => {
-      const data = await this.makeRequest<SpotifyPlaylistResponse>(
-        userId,
-        accessToken,
-        `${this.configService.get('SPOTIFY_API_ENDPOINT')}/me/playlists`,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            name: name || 'New Playlist',
-            public: true,
-            description: 'Converted playlist from another platform',
-          }),
-        },
-      );
+    try {
+      return await this.apiRateLimiter.addRequest(async () => {
+        const data = await this.makeRequest<SpotifyPlaylistResponse>(
+          userId,
+          accessToken,
+          `${this.configService.get('SPOTIFY_API_ENDPOINT')}/me/playlists`,
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              name: name || 'New Playlist',
+              public: true,
+              description: 'Converted playlist from another platform',
+            }),
+          },
+        );
 
-      return {
-        playlistId: data.id,
-        playlistUri: data.uri,
-        playlistName: data.name,
-      };
-    });
+        return {
+          playlistId: data.id,
+          playlistUri: data.uri,
+          playlistName: data.name,
+        };
+      });
+    } catch (error) {
+      throw new PlatformError(
+        'Spotify API Rate Limiter Error',
+        error as string,
+      );
+    }
   }
 
   async searchSong(
@@ -114,23 +115,30 @@ export class SpotifyApiClient {
     accessToken: string,
     songData: { title: string; artist: string },
   ): Promise<{ songUri: string } | null> {
-    return this.apiRateLimiter.addRequest(async () => {
-      const query = songData.artist
-        ? `track:${songData.title} artist:${songData.artist}`
-        : `track:${songData.title}`;
+    try {
+      return await this.apiRateLimiter.addRequest(async () => {
+        const query = songData.artist
+          ? `track:${songData.title} artist:${songData.artist}`
+          : `track:${songData.title}`;
 
-      const data = await this.makeRequest<SpotifySearchResponse>(
-        userId,
-        accessToken,
-        `${this.config.apiEndpoint}/search?q=${encodeURIComponent(
-          query,
-        )}&type=track&limit=1`,
+        const data = await this.makeRequest<SpotifySearchResponse>(
+          userId,
+          accessToken,
+          `${this.config.apiEndpoint}/search?q=${encodeURIComponent(
+            query,
+          )}&type=track&limit=1`,
+        );
+
+        return data.tracks.items[0]
+          ? { songUri: data.tracks.items[0].uri }
+          : null;
+      });
+    } catch (error) {
+      throw new PlatformError(
+        'Spotify API Rate Limiter Error',
+        error as string,
       );
-
-      return data.tracks.items[0]
-        ? { songUri: data.tracks.items[0].uri }
-        : null;
-    });
+    }
   }
 
   async addSongsToPlaylist(
@@ -143,19 +151,26 @@ export class SpotifyApiClient {
 
     for (let i = 0; i < songUris.length; i += batchSize) {
       const batch = songUris.slice(i, i + batchSize);
-      await this.apiRateLimiter.addRequest(async () => {
-        const data = await this.makeRequest(
-          userId,
-          accessToken,
-          `${this.config.apiEndpoint}/playlists/${playlistId}/tracks`,
-          {
-            method: 'POST',
-            body: JSON.stringify({
-              uris: batch.map((song) => song.songUri),
-            }),
-          },
+      try {
+        await this.apiRateLimiter.addRequest(async () => {
+          const data = await this.makeRequest(
+            userId,
+            accessToken,
+            `${this.config.apiEndpoint}/playlists/${playlistId}/tracks`,
+            {
+              method: 'POST',
+              body: JSON.stringify({
+                uris: batch.map((song) => song.songUri),
+              }),
+            },
+          );
+        });
+      } catch (error) {
+        throw new PlatformError(
+          'Spotify API Rate Limiter Error',
+          error as string,
         );
-      });
+      }
     }
   }
 
@@ -185,26 +200,33 @@ export class SpotifyApiClient {
 
     const authData = await response.json();
 
-    return this.apiRateLimiter.addRequest(async () => {
-      const data: any = await this.makeRequest(
-        null,
-        authData.access_token,
-        `${this.config.apiEndpoint}/playlists/${playlistId}/tracks`,
-      );
+    try {
+      return await this.apiRateLimiter.addRequest(async () => {
+        const data: any = await this.makeRequest(
+          null,
+          authData.access_token,
+          `${this.config.apiEndpoint}/playlists/${playlistId}/tracks`,
+        );
 
-      const arrayData: PlaylistJSON[] = data.tracks.items.map((item) => {
-        const track = item.track;
-        const artists = track.artists
-          .map((artist: any) => artist.name)
-          .join(', ');
-        return {
-          title: track.name,
-          artist: artists,
-          album: track.album.name,
-          thumbnail: track.album.images?.[0]?.url || null,
-        };
+        const arrayData: PlaylistJSON[] = data.tracks.items.map((item) => {
+          const track = item.track;
+          const artists = track.artists
+            .map((artist: any) => artist.name)
+            .join(', ');
+          return {
+            title: track.name,
+            artist: artists,
+            album: track.album.name,
+            thumbnail: track.album.images?.[0]?.url || null,
+          };
+        });
+        return arrayData;
       });
-      return arrayData;
-    });
+    } catch (error) {
+      throw new PlatformError(
+        'Spotify API Rate Limiter Error',
+        error as string,
+      );
+    }
   }
 }
