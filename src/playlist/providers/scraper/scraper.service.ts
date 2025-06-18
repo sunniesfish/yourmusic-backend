@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { Cluster } from 'puppeteer-cluster';
 import { PlaylistJSON } from 'src/playlist/common/dto/playlists.dto';
-import { ScraperResponse, ScraperJob } from './scraper.types';
+import { ScraperJob } from './scraper.types';
 import { scraperConfigService } from './scraper.config';
 
 @Injectable()

@@ -31,16 +31,10 @@ export class YouTubeApiClient {
   private readonly config = createYouTubeApiConfig(this.configService);
 
   constructor(private readonly configService: ConfigService) {
-    this.apiRateLimiter = new ApiRateLimiter(
-      {
-        maxPerSecond: this.config.apiLimitPerSecond,
-        maxPerMinute: this.config.apiLimitPerMinute,
-        maxQueueSize: this.config.apiLimitQueueSize,
-      },
-      (error) => {
-        throw new PlatformError('Error in apiRateLimiter', error as string);
-      },
-    );
+    this.apiRateLimiter = new ApiRateLimiter({
+      maxPerSecond: this.config.apiLimitPerSecond,
+      maxPerMinute: this.config.apiLimitPerMinute,
+    });
   }
 
   private async makeRequest<T>(
@@ -80,37 +74,51 @@ export class YouTubeApiClient {
     oauth2Client: OAuth2Client,
     name: string,
   ): Promise<string> {
-    return this.apiRateLimiter.addRequest(async () => {
-      const data = await this.makeRequest<YouTubePlaylistResponse>(
-        oauth2Client,
-        `${this.config.baseUrl}/playlists?part=snippet`,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            snippet: {
-              title: name,
-              description: 'Converted playlist from another platform',
-            },
-          }),
-        },
+    try {
+      return await this.apiRateLimiter.addRequest(async () => {
+        const data = await this.makeRequest<YouTubePlaylistResponse>(
+          oauth2Client,
+          `${this.config.baseUrl}/playlists?part=snippet`,
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              snippet: {
+                title: name,
+                description: 'Converted playlist from another platform',
+              },
+            }),
+          },
+        );
+        return data.id;
+      });
+    } catch (error) {
+      throw new PlatformError(
+        'YouTube API Rate Limiter Error',
+        error as string,
       );
-      return data.id;
-    });
+    }
   }
 
   async searchVideo(
     oauth2Client: OAuth2Client,
     query: string,
   ): Promise<string | null> {
-    return this.apiRateLimiter.addRequest(async () => {
-      const encodedQuery = encodeURIComponent(query);
-      const data = await this.makeRequest<YouTubeSearchResponse>(
-        oauth2Client,
-        `${this.config.baseUrl}/search?part=snippet&type=video&maxResults=1&q=${encodedQuery}&fields=items(id/videoId)`,
-      );
+    try {
+      return await this.apiRateLimiter.addRequest(async () => {
+        const encodedQuery = encodeURIComponent(query);
+        const data = await this.makeRequest<YouTubeSearchResponse>(
+          oauth2Client,
+          `${this.config.baseUrl}/search?part=snippet&type=video&maxResults=1&q=${encodedQuery}&fields=items(id/videoId)`,
+        );
 
-      return data?.items[0]?.id?.videoId || null;
-    });
+        return data?.items[0]?.id?.videoId || null;
+      });
+    } catch (error) {
+      throw new PlatformError(
+        'YouTube API Rate Limiter Error',
+        error as string,
+      );
+    }
   }
 
   async addToPlaylist(
@@ -118,23 +126,30 @@ export class YouTubeApiClient {
     playlistId: string,
     videoId: string,
   ): Promise<void> {
-    return this.apiRateLimiter.addRequest(async () => {
-      await this.makeRequest(
-        oauth2Client,
-        `${this.config.baseUrl}/playlistItems?part=snippet`,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            snippet: {
-              playlistId,
-              resourceId: {
-                kind: 'youtube#video',
-                videoId,
+    try {
+      return await this.apiRateLimiter.addRequest(async () => {
+        await this.makeRequest(
+          oauth2Client,
+          `${this.config.baseUrl}/playlistItems?part=snippet`,
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              snippet: {
+                playlistId,
+                resourceId: {
+                  kind: 'youtube#video',
+                  videoId,
+                },
               },
-            },
-          }),
-        },
+            }),
+          },
+        );
+      });
+    } catch (error) {
+      throw new PlatformError(
+        'YouTube API Rate Limiter Error',
+        error as string,
       );
-    });
+    }
   }
 }
