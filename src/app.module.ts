@@ -16,6 +16,7 @@ import { SpotifyToken } from './auth/entities/spotify-token.entity';
 import { YoutubeCredentials } from './auth/entities/youtube-token.entity';
 import { Statistic } from './statistic/entities/statistic.entity';
 import { Playlist } from './playlist/entities/playlist.entity';
+import { FirestoreModule } from './firestore/firestore.module';
 
 const envFilePath = '/secrets/.env';
 
@@ -42,6 +43,7 @@ const envFilePath = '/secrets/.env';
       }),
       inject: [ConfigService],
     }),
+    FirestoreModule,
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),

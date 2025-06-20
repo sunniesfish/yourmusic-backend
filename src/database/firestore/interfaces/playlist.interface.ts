@@ -1,7 +1,7 @@
 import { PlaylistJSON } from '../../../playlist/common/dto/playlists.dto';
 
 export interface PlaylistDocument {
-  id: string;
+  playlistId: string;
   name: string;
   listJson: PlaylistJSON[];
   thumbnail?: string;

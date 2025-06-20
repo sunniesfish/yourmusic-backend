@@ -1,12 +1,10 @@
 import { RankType } from '../../../statistic/dto/rank.type';
 
 export interface UserDocument {
-  id: string;
+  userId: string;
   name: string;
   profileImg?: string;
   password: string;
-  playlistIds?: string[];
-
   refreshToken?: {
     id: string;
     refreshToken: string;

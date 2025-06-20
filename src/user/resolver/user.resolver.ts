@@ -19,7 +19,7 @@ export class UserResolver {
   async user(
     @Info() info: GraphQLResolveInfo,
     @CurrentUser() user: UserInput,
-  ): Promise<User> {
+  ): Promise<Partial<User>> {
     if (!user.id) {
       throw new ForbiddenException();
     }
