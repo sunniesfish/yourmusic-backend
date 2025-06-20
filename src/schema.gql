@@ -2,7 +2,9 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
-"""Enum for the API domain"""
+"""
+Enum for the API domain
+"""
 enum ApiDomain {
   SPOTIFY
   YOUTUBE
@@ -51,8 +53,16 @@ type Mutation {
   changePassword(input: ChangePasswordInput!): User!
   checkId(id: String!): Boolean!
   checkPassword(password: String!): Boolean!
-  convertToSpotifyPlaylist(authorizationCode: String, listJSON: [PlaylistJSONInput!]!, state: String): ConvertPlaylistResponse!
-  convertToYoutubePlaylist(authorizationCode: String, listJSON: [PlaylistJSONInput!]!, state: String): ConvertPlaylistResponse!
+  convertToSpotifyPlaylist(
+    authorizationCode: String
+    listJSON: [PlaylistJSONInput!]!
+    state: String
+  ): ConvertPlaylistResponse!
+  convertToYoutubePlaylist(
+    authorizationCode: String
+    listJSON: [PlaylistJSONInput!]!
+    state: String
+  ): ConvertPlaylistResponse!
   readPlaylist(link: String!): [PlaylistJSON!]!
   removePlaylist(id: Int!): Boolean!
   removeStatistic(userId: ID!): Statistic!
