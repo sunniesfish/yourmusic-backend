@@ -4,9 +4,11 @@ import {
   Int,
   InputType,
   createUnionType,
+  ArgsType,
 } from '@nestjs/graphql';
 import { ApiDomain } from 'src/auth/common/enums/api-domain.enum';
 import { Playlist } from 'src/playlist/entities/playlist.entity';
+import { PageInfo, PlaylistEdge } from '../interfaces/playlist.interface';
 
 /**
  * @description
@@ -17,10 +19,10 @@ import { Playlist } from 'src/playlist/entities/playlist.entity';
 @ObjectType('PlaylistsResponse')
 export class PlaylistsResponse {
   @Field(() => [Playlist])
-  playlists: Playlist[];
+  edges: PlaylistEdge[];
 
   @Field(() => Int)
-  totalPages: number;
+  pageInfo: PageInfo;
 }
 
 /**
@@ -99,3 +101,21 @@ export const ConvertPlaylistResponse = createUnionType({
     return AuthRequiredResponse;
   },
 });
+
+@ArgsType()
+export class GetPlaylistsByUserArgs {
+  @Field()
+  userId: string;
+
+  @Field()
+  orderBy: 'createdAt' | 'name';
+
+  @Field(() => Int)
+  limit: number;
+
+  @Field({ nullable: true })
+  after?: string;
+
+  @Field({ nullable: true })
+  afterValue?: string;
+}

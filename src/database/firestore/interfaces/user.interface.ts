@@ -27,3 +27,14 @@ export interface UserDocument {
     updatedAt: Date;
   };
 }
+
+export interface OmitUserDocument
+  extends Omit<
+    UserDocument,
+    | 'password'
+    | 'refreshToken'
+    | 'spotifyToken'
+    | 'youtubeCredentials'
+    | 'statistic'
+    | 'userId'
+  > {}

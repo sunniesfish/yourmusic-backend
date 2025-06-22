@@ -94,9 +94,17 @@ export class PlaylistService {
     }
   }
 
+  async getPlaylistsPageByUser(
+    userId: string,
+    after: string,
+    limit: number,
+    orderBy: string,
+    fields: string[],
+  ) {}
+
   async findAll(
     userId: string,
-    page: number,
+    after: string,
     limit: number,
     orderBy: string,
     fields: string[],

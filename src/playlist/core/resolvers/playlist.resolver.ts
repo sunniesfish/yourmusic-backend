@@ -15,6 +15,7 @@ import {
   MutatePlaylistInput,
   AuthRequiredResponse,
   ConvertPlaylistResponse,
+  GetPlaylistsByUserArgs,
 } from 'src/playlist/common/dto/playlists.dto';
 import { CurrentUser } from 'src/global/decorators/current-user';
 import {
@@ -88,15 +89,13 @@ export class PlaylistResolver {
     return result;
   }
 
-  @Query(() => PlaylistsResponse, { name: 'playlistsPage' })
+  @Query(() => PlaylistsResponse, { name: 'playlistsByUser' })
   async findAll(
     @CurrentUser() user: UserInput,
-    @Args('page', { type: () => Int }) page: number,
-    @Args('limit', { type: () => Int }) limit: number,
-    @Args('orderBy', { type: () => String }) orderBy: string,
+    @Args() args: GetPlaylistsByUserArgs,
     @Info() info: GraphQLResolveInfo,
   ) {
-    if (user.id === undefined) {
+    if (user.id === undefined && args.userId !== user.id) {
       throw new ForbiddenException();
     }
 
@@ -115,9 +114,9 @@ export class PlaylistResolver {
 
     return await this.playlistService.findAll(
       user.id,
-      page,
-      limit,
-      orderBy,
+      args.after,
+      args.limit,
+      args.orderBy,
       Array.from(playlistFields),
     );
   }
