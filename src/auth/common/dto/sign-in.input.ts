@@ -6,7 +6,7 @@ export class SignInInput {
   @IsNotEmpty({ message: 'ID is required' })
   @IsString()
   @Field(() => String)
-  id: string;
+  userId: string;
 
   @IsNotEmpty({ message: 'Password is required' })
   @IsString()

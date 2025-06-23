@@ -1,16 +1,22 @@
 import { Args, Info, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UserService } from '../services/user.service';
-import { User } from '../entities/user.entity';
 import { UpdateUserInput } from '../dto/update-user.input';
 import { FieldNode, GraphQLResolveInfo } from 'graphql';
 import { EXCLUDED_USER_FIELDS } from '../constants/field-restrictions';
-import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  UnauthorizedException,
+  UseFilters,
+} from '@nestjs/common';
 import { CurrentUser } from 'src/global/decorators/current-user';
 import { UserInput } from '../dto/user.input';
 import { Auth } from 'src/global/decorators/auth.decorator';
 import { AuthLevel } from 'src/auth/common/enums/auth-level.enum';
+import { User } from '../dto/user.object';
+import { GqlExceptionFilter } from 'src/global/filter/graphql-exception.filter';
 
 @Resolver(() => User)
+@UseFilters(GqlExceptionFilter)
 export class UserResolver {
   constructor(private readonly userService: UserService) {}
 
@@ -44,10 +50,6 @@ export class UserResolver {
       Object.keys(requestedFields) as Array<keyof User>,
     );
 
-    if (!foundUser) {
-      throw new UnauthorizedException('User not found');
-    }
-
     return foundUser;
   }
 
@@ -56,10 +58,10 @@ export class UserResolver {
     @Args('updateUserInput') updateUserInput: UpdateUserInput,
     @CurrentUser() user: UserInput,
   ): Promise<boolean> {
-    console.log('updateUser', user);
-    console.log('updateUserInput', updateUserInput);
-    if (user.id !== updateUserInput.id) {
-      throw new ForbiddenException();
+    if (user.id !== updateUserInput.userId) {
+      throw new ForbiddenException(
+        'You are not authorized to update this user',
+      );
     }
 
     return await this.userService.update(updateUserInput);

@@ -1,9 +1,7 @@
+import { User } from 'src/user/dto/user.object';
 import { RankType } from '../../../statistic/dto/rank.type';
 
-export interface UserDocument {
-  userId: string;
-  name: string;
-  profileImg?: string;
+export interface UserDocument extends User {
   password: string;
   refreshToken?: {
     id: string;
@@ -27,14 +25,3 @@ export interface UserDocument {
     updatedAt: Date;
   };
 }
-
-export interface OmitUserDocument
-  extends Omit<
-    UserDocument,
-    | 'password'
-    | 'refreshToken'
-    | 'spotifyToken'
-    | 'youtubeCredentials'
-    | 'statistic'
-    | 'userId'
-  > {}

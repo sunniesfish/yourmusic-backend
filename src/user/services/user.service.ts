@@ -1,19 +1,23 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
-  InternalServerErrorException,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
-import { User } from '../entities/user.entity';
 import { UpdateUserInput } from '../dto/update-user.input';
 import { SignUpInput } from 'src/auth/common/dto/sign-up.input';
 import * as bcrypt from 'bcrypt';
-import { Firestore } from '@google-cloud/firestore';
+import {
+  DocumentData,
+  DocumentSnapshot,
+  Firestore,
+  Transaction,
+} from '@google-cloud/firestore';
 import { Inject } from '@nestjs/common';
 import { UserDocument } from 'src/database/firestore/interfaces/user.interface';
-import { UserInput } from '../dto/user.input';
-import { SignInInput } from 'src/auth/common/dto/sign-in.input';
-import { TransactionUtil } from 'src/database/firestore/util/transaction.utill';
+import { User } from '../dto/user.object';
+import { UserServiceData } from '../interfaces/user.interface';
 
 @Injectable()
 export class UserService {
@@ -24,124 +28,167 @@ export class UserService {
     private firestore: Firestore,
   ) {}
 
-  async update(updateUserInput: UpdateUserInput) {
-    try {
-      const { id, ...update } = updateUserInput;
-      const userRef = this.firestore.collection(this.COLLECTION_NAME).doc(id);
-      await userRef.update(update);
-      return true;
-    } catch (error) {
+  async update(
+    updateUserInput: UpdateUserInput,
+    transaction?: Transaction,
+  ): Promise<boolean> {
+    const sanitizedUpdate = this.sanitizeUserData(updateUserInput);
+    if (!transaction) {
+      return await this.firestore.runTransaction(async (tx) => {
+        return await this.runUpdateTransaction(
+          updateUserInput.userId,
+          sanitizedUpdate,
+          tx,
+        );
+      });
+    }
+    return await this.runUpdateTransaction(
+      updateUserInput.userId,
+      sanitizedUpdate,
+      transaction,
+    );
+  }
+
+  async runUpdateTransaction(
+    userId: string,
+    sanitizedUpdate: Partial<UserServiceData>,
+    transaction: Transaction,
+  ): Promise<boolean> {
+    const userRef = this.firestore.collection(this.COLLECTION_NAME).doc(userId);
+
+    if (!(await transaction.get(userRef)).exists) {
       throw new NotFoundException('User not found');
     }
+
+    if (sanitizedUpdate.password) {
+      const hashedPassword = await bcrypt.hash(
+        sanitizedUpdate.password,
+        this.SALT_ROUNDS,
+      );
+      sanitizedUpdate.password = hashedPassword;
+    }
+
+    transaction.update(userRef, sanitizedUpdate);
+    return true;
   }
 
   async findOne(
-    id: string,
-    fields: Array<keyof User>,
-    transaction?: FirebaseFirestore.Transaction,
-  ): Promise<Partial<User> | undefined> {
-    return await TransactionUtil.executeWithOptionalTransaction(
-      this.firestore,
-      transaction,
-      async (tx) => {
-        const userRef = this.firestore.collection(this.COLLECTION_NAME).doc(id);
-        const doc = await userRef.get();
-
-        if (!doc.exists) {
-          throw new NotFoundException('User not found');
-        }
-
-        const userData = doc.data() as UserDocument;
-
-        const filtered: Partial<UserDocument> = {};
-        for (const field of fields) {
-          if (userData[field] !== undefined) {
-            filtered[field] = userData[field];
-          }
-        }
-        return filtered;
-      },
-    );
-  }
-
-  async create(user: SignUpInput): Promise<User> {
-    try {
-      return await this.firestore.runTransaction(async (transaction) => {
-        const userData = this.sanitizeUserData(user);
-        if (!(await this.validateUser(userData.id, userData.password))) {
-          throw Error('User with same ID already exists');
-        }
-        const userRef = this.firestore.collection(this.COLLECTION_NAME).doc();
-        const hashedPassword = bcrypt.hash(user.password, this.SALT_ROUNDS);
-        transaction.set(userRef, {
-          id: userRef.id,
-          userId: userData.id,
-          password: hashedPassword,
-        });
-        return {
-          id: user.id,
-          name: user.name,
-        };
-      });
-    } catch (error) {
-      if (error instanceof ConflictException) {
-        throw error;
-      }
-      throw new InternalServerErrorException('Fail to create user');
-    }
-  }
-
-  async checkId(
     userId: string,
-    transaction?: FirebaseFirestore.Transaction,
-  ): Promise<boolean> {
-    return await TransactionUtil.executeWithOptionalTransaction(
-      this.firestore,
+    fields: Array<keyof UserServiceData>,
+    transaction?: Transaction,
+  ): Promise<Partial<UserServiceData>> {
+    const userRef = this.firestore.collection(this.COLLECTION_NAME).doc(userId);
+    let doc: DocumentSnapshot<DocumentData>;
+
+    if (transaction) {
+      doc = await transaction.get(userRef);
+    } else {
+      doc = await userRef.get();
+    }
+
+    if (!doc.exists) {
+      throw new NotFoundException('User not found');
+    }
+
+    const userData = doc.data() as UserDocument;
+    const filtered: Partial<UserServiceData> = {};
+
+    for (const field of fields) {
+      if (userData[field] !== undefined) {
+        (filtered as any)[field] = userData[field];
+      }
+    }
+
+    return filtered;
+  }
+
+  async create(user: SignUpInput, transaction?: Transaction): Promise<User> {
+    const userData = this.sanitizeUserData(user);
+    if (!userData.userId || !userData.password || !userData.name) {
+      throw new BadRequestException('Required fields are missing');
+    }
+    if (!transaction) {
+      return await this.firestore.runTransaction(async (tx) => {
+        return await this.runCreateTransaction(userData as SignUpInput, tx);
+      });
+    }
+    return await this.runCreateTransaction(
+      userData as SignUpInput,
       transaction,
-      async (tx) => {
-        const userQuery = this.firestore
-          .collection(this.COLLECTION_NAME)
-          .where('userId', '==', userId);
-        const userDoc = await tx.get(userQuery);
-        return !userDoc.empty;
-      },
     );
   }
 
-  async validateUser(
-    id: string,
-    password: string,
-    transaction?: FirebaseFirestore.Transaction,
-  ): Promise<boolean> {
-    return await TransactionUtil.executeWithOptionalTransaction(
-      this.firestore,
-      transaction,
-      async (tx) => {
-        const user = await this.findOne(id, ['password'], tx);
-        if (!user) return false;
-        return bcrypt.compare(password, user.password);
-      },
+  async runCreateTransaction(
+    sanitizedUser: SignUpInput,
+    transaction: Transaction,
+  ): Promise<User> {
+    if (await this.checkId(sanitizedUser.userId, transaction)) {
+      throw new ConflictException('User with same ID already exists');
+    }
+    const userRef = this.firestore
+      .collection(this.COLLECTION_NAME)
+      .doc(sanitizedUser.userId);
+    const hashedPassword = await bcrypt.hash(
+      sanitizedUser.password,
+      this.SALT_ROUNDS,
     );
-  }
-
-  async updatePassword(userId: string, newPassword: string): Promise<boolean> {
-    const hashedPassword = await bcrypt.hash(newPassword, this.SALT_ROUNDS);
-    const result = await this.userRepository.update(
-      { id: userId },
-      { password: hashedPassword },
-    );
-    return result.affected > 0;
-  }
-
-  private sanitizeUserData(user: SignInInput): SignInInput {
+    transaction.set(userRef, {
+      userId: sanitizedUser.userId,
+      password: hashedPassword,
+      name: sanitizedUser.name,
+      profileImg: sanitizedUser?.profileImg,
+    });
     return {
-      id: user.id.trim(),
-      password: user.password.trim(),
+      userId: sanitizedUser.userId,
+      name: sanitizedUser.name,
     };
   }
 
-  private async excuteCheckId(
-    transaction: FirebaseFirestore.Transaction,
+  async checkId(userId: string, transaction?: Transaction): Promise<boolean> {
+    const userRef = this.firestore.collection(this.COLLECTION_NAME).doc(userId);
+    let doc: DocumentSnapshot<DocumentData>;
+
+    if (transaction) {
+      doc = await transaction.get(userRef);
+    } else {
+      doc = await userRef.get();
+    }
+
+    return doc.exists;
+  }
+
+  async validateUser(
     userId: string,
-  ) {}
+    password: string,
+    transaction?: Transaction,
+  ): Promise<void> {
+    let user: Partial<UserServiceData>;
+    if (!transaction) {
+      user = await this.findOne(userId, ['password']);
+    } else {
+      user = await this.findOne(userId, ['password'], transaction);
+    }
+    if (!(await bcrypt.compare(password, user.password))) {
+      throw new UnauthorizedException('Invalid password');
+    }
+  }
+
+  async updatePassword(userId: string, newPassword: string): Promise<boolean> {
+    const result = await this.update({
+      userId: userId,
+      password: newPassword,
+    });
+    return result;
+  }
+
+  private sanitizeUserData(user: Partial<SignUpInput>): Partial<SignUpInput> {
+    const result: Partial<SignUpInput> = {};
+
+    if (user.userId) result.userId = user.userId.trim();
+    if (user.password) result.password = user.password.trim();
+    if (user.name) result.name = user.name.trim();
+    if (user.profileImg) result.profileImg = user.profileImg.trim();
+
+    return result;
+  }
 }

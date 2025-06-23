@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  Inject,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -9,23 +10,26 @@ import { DataSource, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RefreshToken } from '../../entities/refresh-token.entity';
 import { SignInInput } from '../../common/dto/sign-in.input';
-import { User } from '../../../user/entities/user.entity';
+import { User } from '../../../user/dto/user.object';
 import { ChangePasswordInput } from '../../common/dto/change-password.input';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { SignUpInput } from '../../common/dto/sign-up.input';
 import { UserService } from '../../../user/services/user.service';
-
+import { UpdateUserInput } from 'src/user/dto/update-user.input';
+import { Firestore } from '@google-cloud/firestore';
+import { SignInResponse } from '../../common/dto/sign-in.response';
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(RefreshToken)
     private readonly refreshTokenRepository: Repository<RefreshToken>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+
     private readonly configService: ConfigService,
+
+    @Inject('FIRESTORE')
+    private readonly firestore: Firestore,
     private readonly jwtService: JwtService,
-    private readonly dataSource: DataSource,
     private readonly userService: UserService,
   ) {}
 
@@ -36,11 +40,11 @@ export class AuthService {
     });
   }
 
-  async signIn(signInInput: SignInInput) {
-    const user = await this.validateUser(signInInput.id, signInInput.password);
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
+  async signIn(signInInput: SignInInput): Promise<SignInResponse> {
+    const user = await this.userService.validateUser(
+      signInInput.userId,
+      signInInput.password,
+    );
 
     const queryRunner = this.dataSource.createQueryRunner();
 
@@ -89,20 +93,15 @@ export class AuthService {
     return result.affected === 1;
   }
 
-  async signUp(signUpInput: SignUpInput) {
-    const user = await this.userRepository.findOne({
-      where: { id: signUpInput.id },
+  async signUp(signUpInput: SignUpInput): Promise<boolean> {
+    const result = await this.firestore.runTransaction(async (tx) => {
+      const user = await this.userService.create(signUpInput, tx);
+      if (!user) {
+        throw new ConflictException('User already exists');
+      }
+      return true;
     });
-    if (user) {
-      throw new ConflictException('User already exists');
-    }
-    const hashedPassword = await bcrypt.hash(signUpInput.password, 10);
-    const newUser = this.userRepository.create({
-      ...signUpInput,
-      password: hashedPassword,
-    });
-    await this.userRepository.save(newUser);
-    return true;
+    return result;
   }
 
   async refreshToken(refreshToken: string) {
@@ -150,37 +149,32 @@ export class AuthService {
     }
   }
 
-  async checkPassword(userId: string, password: string) {
-    const user = await this.userRepository.findOne({
-      where: { id: userId },
+  async checkPassword(userId: string, password: string): Promise<boolean> {
+    const result = await this.firestore.runTransaction(async (tx) => {
+      const user = await this.userService.findOne(userId, ['password'], tx);
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+      return await bcrypt.compare(password, user.password);
     });
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-    return await bcrypt.compare(password, user.password);
+    return result;
   }
 
-  async changePassword(input: ChangePasswordInput) {
-    const user = await this.userRepository.findOne({
-      where: { id: input.id },
+  async changePassword(input: UpdateUserInput): Promise<boolean> {
+    await this.firestore.runTransaction(async (tx) => {
+      const user = await this.userService.findOne(
+        input.userId,
+        ['password'],
+        tx,
+      );
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+      const hashedPassword = await bcrypt.hash(input.password, 10);
+      user.password = hashedPassword;
+      await this.userService.update(input, tx);
     });
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-    const hashedPassword = await bcrypt.hash(input.password, 10);
-    user.password = hashedPassword;
-    await this.userRepository.save(user);
     return true;
-  }
-
-  async validateUser(id: string, password: string): Promise<any> {
-    const isValid = await this.userService.validateUser(id, password);
-    if (!isValid) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-    const user = await this.userService.findOne(id, ['id', 'name']);
-
-    return user;
   }
 
   validateToken(token: string, isAccessToken: boolean = true): Promise<any> {

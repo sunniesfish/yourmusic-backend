@@ -6,9 +6,10 @@ import {
   Length,
   IsNotEmpty,
 } from 'class-validator';
+import { UserServiceData } from 'src/user/interfaces/user.interface';
 
 @InputType()
-export class SignUpInput {
+export class SignUpInput implements UserServiceData {
   @IsNotEmpty({ message: 'ID is required' })
   @IsString()
   @Length(4, 12, { message: 'ID must be between 4 and 12 characters' })
@@ -16,7 +17,7 @@ export class SignUpInput {
     message: 'ID must not contain special characters',
   })
   @Field(() => String)
-  id: string;
+  userId: string;
 
   @IsNotEmpty({ message: 'Password is required' })
   @IsString()

@@ -1,7 +1,7 @@
 import { Args, Context, Mutation, Resolver } from '@nestjs/graphql';
 import { AuthService } from '../services/auth.service';
 import { UserService } from 'src/user/services/user.service';
-import { User } from 'src/user/entities/user.entity';
+import { User } from 'src/user/dto/user.object';
 import { ForbiddenException } from '@nestjs/common';
 import { UserInput } from 'src/user/dto/user.input';
 import { SignInResponse } from '../../common/dto/sign-in.response';

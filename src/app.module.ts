@@ -10,7 +10,7 @@ import { PlaylistModule } from './playlist/playlist.module';
 import { StatisticModule } from './statistic/statistic.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
-import { User } from './user/entities/user.entity';
+import { User } from './user/entities/user.dto';
 import { RefreshToken } from './auth/entities/refresh-token.entity';
 import { SpotifyToken } from './auth/entities/spotify-token.entity';
 import { YoutubeCredentials } from './auth/entities/youtube-token.entity';

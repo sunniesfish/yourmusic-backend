@@ -3,7 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserModule } from 'src/user/user.module';
 import { AuthService } from 'src/auth/core/services/auth.service';
 import { RefreshToken } from 'src/auth/entities/refresh-token.entity';
-import { User } from 'src/user/entities/user.entity';
+import { User } from 'src/user/entities/user.dto';
 import { SpotifyToken } from 'src/auth/entities/spotify-token.entity';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
