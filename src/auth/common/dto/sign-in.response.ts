@@ -1,6 +1,6 @@
 import { Field } from '@nestjs/graphql';
 import { ObjectType } from '@nestjs/graphql';
-import { User } from 'src/user/entities/user.dto';
+import { User } from 'src/user/dto/user.object';
 
 @ObjectType()
 export class SignInResponse {

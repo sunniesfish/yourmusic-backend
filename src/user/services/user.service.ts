@@ -5,7 +5,6 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { UpdateUserInput } from '../dto/update-user.input';
 import { SignUpInput } from 'src/auth/common/dto/sign-up.input';
 import * as bcrypt from 'bcrypt';
 import {
@@ -17,33 +16,36 @@ import {
 import { Inject } from '@nestjs/common';
 import { UserDocument } from 'src/database/firestore/interfaces/user.interface';
 import { User } from '../dto/user.object';
-import { UserServiceData } from '../interfaces/user.interface';
-
+import { FirestoreUtil } from 'src/database/firestore/util/utill';
+import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class UserService {
-  private readonly SALT_ROUNDS = 10;
+  private readonly SALT_ROUNDS: number;
   private readonly COLLECTION_NAME = 'users';
   constructor(
     @Inject('FIRESTORE')
     private firestore: Firestore,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.SALT_ROUNDS = parseInt(this.configService.get('SALT_ROUNDS'));
+  }
 
   async update(
-    updateUserInput: UpdateUserInput,
+    userServiceData: Partial<UserDocument>,
     transaction?: Transaction,
   ): Promise<boolean> {
-    const sanitizedUpdate = this.sanitizeUserData(updateUserInput);
+    const sanitizedUpdate = this.sanitizeUserData(userServiceData);
     if (!transaction) {
       return await this.firestore.runTransaction(async (tx) => {
         return await this.runUpdateTransaction(
-          updateUserInput.userId,
+          userServiceData.userId,
           sanitizedUpdate,
           tx,
         );
       });
     }
     return await this.runUpdateTransaction(
-      updateUserInput.userId,
+      userServiceData.userId,
       sanitizedUpdate,
       transaction,
     );
@@ -51,7 +53,7 @@ export class UserService {
 
   async runUpdateTransaction(
     userId: string,
-    sanitizedUpdate: Partial<UserServiceData>,
+    sanitizedUpdate: Partial<UserDocument>,
     transaction: Transaction,
   ): Promise<boolean> {
     const userRef = this.firestore.collection(this.COLLECTION_NAME).doc(userId);
@@ -68,15 +70,16 @@ export class UserService {
       sanitizedUpdate.password = hashedPassword;
     }
 
-    transaction.update(userRef, sanitizedUpdate);
+    const flattenedUpdate = FirestoreUtil.flattenObject(sanitizedUpdate);
+    transaction.update(userRef, flattenedUpdate);
     return true;
   }
 
   async findOne(
     userId: string,
-    fields: Array<keyof UserServiceData>,
+    fields: Array<keyof UserDocument>,
     transaction?: Transaction,
-  ): Promise<Partial<UserServiceData>> {
+  ): Promise<Partial<UserDocument>> {
     const userRef = this.firestore.collection(this.COLLECTION_NAME).doc(userId);
     let doc: DocumentSnapshot<DocumentData>;
 
@@ -91,7 +94,7 @@ export class UserService {
     }
 
     const userData = doc.data() as UserDocument;
-    const filtered: Partial<UserServiceData> = {};
+    const filtered: Partial<UserDocument> = {};
 
     for (const field of fields) {
       if (userData[field] !== undefined) {
@@ -102,8 +105,11 @@ export class UserService {
     return filtered;
   }
 
-  async create(user: SignUpInput, transaction?: Transaction): Promise<User> {
-    const userData = this.sanitizeUserData(user);
+  async create(
+    userServiceData: Partial<UserDocument>,
+    transaction?: Transaction,
+  ): Promise<User> {
+    const userData = this.sanitizeUserData(userServiceData);
     if (!userData.userId || !userData.password || !userData.name) {
       throw new BadRequestException('Required fields are missing');
     }
@@ -119,28 +125,26 @@ export class UserService {
   }
 
   async runCreateTransaction(
-    sanitizedUser: SignUpInput,
+    userServiceData: Partial<UserDocument>,
     transaction: Transaction,
   ): Promise<User> {
-    if (await this.checkId(sanitizedUser.userId, transaction)) {
+    if (await this.checkId(userServiceData.userId, transaction)) {
       throw new ConflictException('User with same ID already exists');
     }
     const userRef = this.firestore
       .collection(this.COLLECTION_NAME)
-      .doc(sanitizedUser.userId);
+      .doc(userServiceData.userId);
+
     const hashedPassword = await bcrypt.hash(
-      sanitizedUser.password,
+      userServiceData.password,
       this.SALT_ROUNDS,
     );
-    transaction.set(userRef, {
-      userId: sanitizedUser.userId,
-      password: hashedPassword,
-      name: sanitizedUser.name,
-      profileImg: sanitizedUser?.profileImg,
-    });
+    userServiceData.password = hashedPassword;
+    const flattenedUser = FirestoreUtil.flattenObject(userServiceData);
+    transaction.set(userRef, flattenedUser);
     return {
-      userId: sanitizedUser.userId,
-      name: sanitizedUser.name,
+      userId: userServiceData.userId,
+      name: userServiceData.name,
     };
   }
 
@@ -161,16 +165,21 @@ export class UserService {
     userId: string,
     password: string,
     transaction?: Transaction,
-  ): Promise<void> {
-    let user: Partial<UserServiceData>;
+  ): Promise<Partial<UserDocument>> {
+    let user: Partial<UserDocument>;
     if (!transaction) {
-      user = await this.findOne(userId, ['password']);
+      user = await this.findOne(userId, ['password', 'userId', 'name']);
     } else {
-      user = await this.findOne(userId, ['password'], transaction);
+      user = await this.findOne(
+        userId,
+        ['password', 'userId', 'name'],
+        transaction,
+      );
     }
     if (!(await bcrypt.compare(password, user.password))) {
       throw new UnauthorizedException('Invalid password');
     }
+    return user;
   }
 
   async updatePassword(userId: string, newPassword: string): Promise<boolean> {
@@ -181,13 +190,17 @@ export class UserService {
     return result;
   }
 
-  private sanitizeUserData(user: Partial<SignUpInput>): Partial<SignUpInput> {
-    const result: Partial<SignUpInput> = {};
+  private sanitizeUserData(
+    userServiceData: Partial<UserDocument>,
+  ): Partial<UserDocument> {
+    const result: Partial<UserDocument> = {};
 
-    if (user.userId) result.userId = user.userId.trim();
-    if (user.password) result.password = user.password.trim();
-    if (user.name) result.name = user.name.trim();
-    if (user.profileImg) result.profileImg = user.profileImg.trim();
+    if (userServiceData.userId) result.userId = userServiceData.userId.trim();
+    if (userServiceData.password)
+      result.password = userServiceData.password.trim();
+    if (userServiceData.name) result.name = userServiceData.name.trim();
+    if (userServiceData.profileImg)
+      result.profileImg = userServiceData.profileImg.trim();
 
     return result;
   }

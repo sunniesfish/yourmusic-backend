@@ -86,6 +86,9 @@ export class AuthResolver {
     if (user.id !== input.id) {
       throw new ForbiddenException();
     }
-    return await this.authService.changePassword(input);
+    return await this.authService.changePassword({
+      ...input,
+      userId: user.id,
+    });
   }
 }

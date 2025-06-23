@@ -1,166 +1,168 @@
 import {
-  ConflictException,
   Inject,
   Injectable,
+  InternalServerErrorException,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { DataSource, Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
-import { RefreshToken } from '../../entities/refresh-token.entity';
 import { SignInInput } from '../../common/dto/sign-in.input';
 import { User } from '../../../user/dto/user.object';
-import { ChangePasswordInput } from '../../common/dto/change-password.input';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { SignUpInput } from '../../common/dto/sign-up.input';
 import { UserService } from '../../../user/services/user.service';
 import { UpdateUserInput } from 'src/user/dto/update-user.input';
 import { Firestore } from '@google-cloud/firestore';
-import { SignInResponse } from '../../common/dto/sign-in.response';
+import { UserDocument } from 'src/database/firestore/interfaces/user.interface';
 @Injectable()
 export class AuthService {
+  private readonly SALT_ROUNDS: number;
+  private readonly REFRESH_TOKEN_EXPIRATION: string;
   constructor(
-    @InjectRepository(RefreshToken)
-    private readonly refreshTokenRepository: Repository<RefreshToken>,
-
     private readonly configService: ConfigService,
-
     @Inject('FIRESTORE')
     private readonly firestore: Firestore,
     private readonly jwtService: JwtService,
     private readonly userService: UserService,
-  ) {}
+    private readonly logger: Logger,
+  ) {
+    this.SALT_ROUNDS = parseInt(this.configService.get('SALT_ROUNDS'));
+    this.REFRESH_TOKEN_EXPIRATION = this.configService.get(
+      'REFRESH_TOKEN_EXPIRATION',
+    );
+  }
 
   generateRefreshToken(payload: any): string {
     return this.jwtService.sign(payload, {
       secret: this.configService.get('JWT_REFRESH_SECRET'),
-      expiresIn: '7d',
+      expiresIn: this.REFRESH_TOKEN_EXPIRATION,
     });
   }
 
-  async signIn(signInInput: SignInInput): Promise<SignInResponse> {
-    const user = await this.userService.validateUser(
-      signInInput.userId,
-      signInInput.password,
-    );
-
-    const queryRunner = this.dataSource.createQueryRunner();
-
-    try {
-      await queryRunner.connect();
-      await queryRunner.startTransaction();
-
-      const payload = { sub: user.id, username: user.name };
-      const refreshToken = this.generateRefreshToken(payload);
-      const refreshTokenRepository = queryRunner.manager.withRepository(
-        this.refreshTokenRepository,
+  async signIn(signInInput: SignInInput): Promise<{
+    user: User;
+    accessToken: string;
+    refreshToken: string;
+  }> {
+    const result = await this.firestore.runTransaction(async (tx) => {
+      const user = await this.userService.validateUser(
+        signInInput.userId,
+        signInInput.password,
+        tx,
       );
 
-      await refreshTokenRepository.delete({ user: { id: user.id } });
-      await refreshTokenRepository.save({
-        user: { id: user.id },
-        refreshToken: refreshToken,
+      const payload = {
+        sub: user.userId,
+        username: user.name,
+      };
+      const refreshToken = this.generateRefreshToken(payload);
+      const accessToken = this.jwtService.sign(payload, {
+        secret: this.configService.get('JWT_ACCESS_SECRET'),
       });
 
-      await queryRunner.commitTransaction();
+      const isUpdated = await this.userService.update(
+        {
+          userId: signInInput.userId,
+          refreshToken: {
+            id: signInInput.userId,
+            refreshToken: refreshToken,
+          },
+        },
+        tx,
+      );
+
+      if (!isUpdated) {
+        throw new UnauthorizedException('Invalid credentials');
+      }
 
       return {
-        user,
-        accessToken: this.jwtService.sign(payload, {
-          secret: this.configService.get('JWT_ACCESS_SECRET'),
-        }),
+        user: {
+          userId: user.userId,
+          name: user.name,
+        },
+        accessToken,
         refreshToken,
       };
-    } catch (error) {
-      if (queryRunner.isTransactionActive) {
-        await queryRunner.rollbackTransaction();
-      }
-      throw error;
-    } finally {
-      if (!queryRunner.isReleased) {
-        await queryRunner.release();
-      }
-    }
+    });
+    return result;
   }
 
   async signOut(refreshToken: string) {
-    const { sub } = await this.validateToken(refreshToken, false);
-    const result = await this.refreshTokenRepository.delete({
-      user: { id: sub },
+    const { sub: userId } = await this.validateToken(refreshToken, false);
+    const result = await this.userService.update({
+      userId: userId,
+      refreshToken: {
+        id: userId,
+        refreshToken: null,
+      },
     });
-    return result.affected === 1;
+    return result;
   }
 
   async signUp(signUpInput: SignUpInput): Promise<boolean> {
-    const result = await this.firestore.runTransaction(async (tx) => {
-      const user = await this.userService.create(signUpInput, tx);
-      if (!user) {
-        throw new ConflictException('User already exists');
-      }
-      return true;
-    });
-    return result;
+    const result = await this.userService.create(signUpInput);
+    return !!result;
   }
 
-  async refreshToken(refreshToken: string) {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-    try {
-      const refreshTokenRepository = queryRunner.manager.withRepository(
-        this.refreshTokenRepository,
-      );
-      const userRepository = queryRunner.manager.withRepository(
-        this.userRepository,
-      );
-
-      const { sub } = await this.validateToken(refreshToken, false);
-      const savedRefreshToken = await refreshTokenRepository.findOne({
-        where: { user: { id: sub }, refreshToken: refreshToken },
-      });
-      if (!savedRefreshToken) {
+  async refreshToken(refreshToken: string): Promise<{
+    accessToken: string;
+    refreshToken: string;
+  }> {
+    const { sub: userId } = await this.validateToken(refreshToken, false);
+    const result = await this.firestore.runTransaction(async (tx) => {
+      let userDoc: Partial<UserDocument>;
+      try {
+        userDoc = await this.userService.findOne(
+          userId,
+          ['refreshToken', 'userId', 'name'],
+          tx,
+        );
+      } catch (error) {
+        this.logger.error(error);
         throw new UnauthorizedException('Invalid refresh token');
       }
-      const user = await userRepository.findOne({ where: { id: sub } });
-      if (!user) {
-        throw new NotFoundException('User not found');
-      }
 
-      const payload = { sub: user.id, username: user.name };
-      const accessToken = this.jwtService.sign(payload);
+      const payload = { sub: userDoc.userId, username: userDoc.name };
+      const accessToken = this.jwtService.sign(payload, {
+        secret: this.configService.get('JWT_ACCESS_SECRET'),
+      });
 
       const newRefreshToken = this.generateRefreshToken(payload);
-      await refreshTokenRepository.upsert(
+
+      const isUpdated = await this.userService.update(
         {
-          user: { id: sub },
-          refreshToken: newRefreshToken,
+          userId: userId,
+          refreshToken: {
+            id: userId,
+            refreshToken: newRefreshToken,
+          },
         },
-        ['user'],
+        tx,
       );
-      await queryRunner.commitTransaction();
+
+      if (!isUpdated) {
+        throw new InternalServerErrorException(
+          'Failed to update refresh token',
+        );
+      }
+
       return { accessToken, refreshToken: newRefreshToken };
-    } catch (error) {
-      await queryRunner.rollbackTransaction();
-      throw error;
-    } finally {
-      await queryRunner.release();
-    }
+    });
+    return result;
   }
 
   async checkPassword(userId: string, password: string): Promise<boolean> {
-    const result = await this.firestore.runTransaction(async (tx) => {
-      const user = await this.userService.findOne(userId, ['password'], tx);
-      if (!user) {
-        throw new NotFoundException('User not found');
-      }
-      return await bcrypt.compare(password, user.password);
-    });
-    return result;
+    const user = await this.userService.findOne(userId, ['password']);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return await bcrypt.compare(password, user.password);
   }
 
   async changePassword(input: UpdateUserInput): Promise<boolean> {
+    const hashedPassword = await bcrypt.hash(input.password, this.SALT_ROUNDS);
     await this.firestore.runTransaction(async (tx) => {
       const user = await this.userService.findOne(
         input.userId,
@@ -170,9 +172,14 @@ export class AuthService {
       if (!user) {
         throw new NotFoundException('User not found');
       }
-      const hashedPassword = await bcrypt.hash(input.password, 10);
       user.password = hashedPassword;
-      await this.userService.update(input, tx);
+      await this.userService.update(
+        {
+          userId: input.userId,
+          password: hashedPassword,
+        },
+        tx,
+      );
     });
     return true;
   }
