@@ -1,5 +1,3 @@
-import { ApiDomain } from '../enums/api-domain.enum';
-
 export interface OAuth2AuthOptions {
   showDialog?: boolean;
   state?: string;

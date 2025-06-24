@@ -1,7 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { OAuth2Client } from 'google-auth-library';
-import { YoutubeCredentials } from 'src/auth/entities/youtube-token.entity';
-import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { OAuth2Service } from 'src/auth/core/services/oauth2.service';
 
@@ -14,14 +12,16 @@ import { OAuthorizationError } from '../../common/errors/oauth.errors';
 import { ConfigService } from '@nestjs/config';
 import { createGoogleAuthConfig } from './google.auth.config';
 import { GOOGLE_OAUTH_SCOPES } from '../../common/constants/oauth-scope.constant';
-
+import { UserService } from 'src/user/services/user.service';
+import { Firestore } from '@google-cloud/firestore';
 @Injectable()
 export class GoogleAuthService extends OAuth2Service {
   private readonly config = createGoogleAuthConfig(this.configService);
   constructor(
-    @InjectRepository(YoutubeCredentials)
-    private readonly youtubeCredentialsRepository: Repository<YoutubeCredentials>,
     private readonly configService: ConfigService,
+    private readonly userService: UserService,
+    @Inject('FIRESTORE')
+    private readonly firestore: Firestore,
   ) {
     super();
   }
@@ -91,11 +91,14 @@ export class GoogleAuthService extends OAuth2Service {
     try {
       const { tokens } = await oauth2Client.getToken(authResponse.code);
       if (userId && tokens.refresh_token) {
-        await this.youtubeCredentialsRepository.save({
+        await this.userService.update({
           userId,
-          accessToken: tokens.access_token,
-          refreshToken: tokens.refresh_token,
-          expiryDate: tokens.expiry_date,
+          youtubeCredentials: {
+            refreshToken: tokens.refresh_token,
+            scope: GOOGLE_OAUTH_SCOPES.YOUTUBE.join(' '),
+            tokenType: 'Bearer',
+            expiryDate: tokens.expiry_date,
+          },
         });
       }
 
@@ -103,7 +106,7 @@ export class GoogleAuthService extends OAuth2Service {
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
         expires_in: tokens.expiry_date,
-        token_type: 'Bearer',
+        token_type: tokens.token_type,
       };
     } catch (error) {
       throw new OAuthorizationError('Failed to get token');
@@ -117,33 +120,43 @@ export class GoogleAuthService extends OAuth2Service {
    */
   async refreshAccessToken(userId: string): Promise<OAuth2TokenResponse> {
     const oauth2Client = this.createOAuthClient();
-    try {
-      const credentials = await this.youtubeCredentialsRepository.findOne({
-        where: { userId },
-      });
-      if (!credentials) {
-        throw new OAuthorizationError('Refresh token not found');
+
+    return await this.firestore.runTransaction(async (transaction) => {
+      const user = await this.userService.findOne(
+        userId,
+        ['youtubeCredentials'],
+        transaction,
+      );
+      if (!user) {
+        throw new OAuthorizationError('User not found');
       }
 
       oauth2Client.setCredentials({
-        refresh_token: credentials.refreshToken,
+        refresh_token: user.youtubeCredentials.refreshToken,
       });
+
       const { credentials: newCredentials } =
         await oauth2Client.refreshAccessToken();
 
-      await this.youtubeCredentialsRepository.update(userId, {
-        refreshToken: newCredentials.refresh_token,
-        expiryDate: newCredentials.expiry_date,
-      });
+      await this.userService.update(
+        {
+          userId,
+          youtubeCredentials: {
+            refreshToken: newCredentials.refresh_token,
+            scope: newCredentials.scope,
+            tokenType: newCredentials.token_type,
+            expiryDate: newCredentials.expiry_date,
+          },
+        },
+        transaction,
+      );
       return {
         access_token: newCredentials.access_token,
-        token_type: newCredentials.token_type,
-        expires_in: newCredentials.expiry_date,
         refresh_token: newCredentials.refresh_token,
+        expires_in: newCredentials.expiry_date,
+        token_type: newCredentials.token_type,
       };
-    } catch (error) {
-      throw new OAuthorizationError('Failed to refresh access token');
-    }
+    });
   }
 
   /**
@@ -151,6 +164,14 @@ export class GoogleAuthService extends OAuth2Service {
    * @param userId - user id
    */
   async signOut(userId: string): Promise<void> {
-    await this.youtubeCredentialsRepository.delete({ userId });
+    await this.userService.update({
+      userId,
+      youtubeCredentials: {
+        expiryDate: 0,
+        refreshToken: null,
+        scope: null,
+        tokenType: null,
+      },
+    });
   }
 }

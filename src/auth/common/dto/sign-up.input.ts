@@ -6,10 +6,10 @@ import {
   Length,
   IsNotEmpty,
 } from 'class-validator';
-import { UserServiceData } from 'src/user/interfaces/user.interface';
+import { User } from 'src/user/dto/user.object';
 
 @InputType()
-export class SignUpInput implements UserServiceData {
+export class SignUpInput implements User {
   @IsNotEmpty({ message: 'ID is required' })
   @IsString()
   @Length(4, 12, { message: 'ID must be between 4 and 12 characters' })

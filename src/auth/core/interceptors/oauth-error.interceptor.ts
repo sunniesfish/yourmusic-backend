@@ -3,7 +3,6 @@ import {
   NestInterceptor,
   ExecutionContext,
   CallHandler,
-  HttpException,
 } from '@nestjs/common';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import { Observable, throwError, from, of } from 'rxjs';
@@ -14,11 +13,6 @@ import { GoogleAuthService } from 'src/auth/providers/google/google-auth.service
 import { OAuthorizationError } from 'src/auth/common/errors/oauth.errors';
 import { ApiDomain } from '../../common/enums/api-domain.enum';
 import { OAUTH_TYPE_KEY } from '../../../global/decorators/auth.decorator';
-
-interface RefreshAttemptState {
-  count: number;
-  inProgress: boolean;
-}
 
 @Injectable()
 export class OAuthErrorInterceptor implements NestInterceptor {

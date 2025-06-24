@@ -1,6 +1,6 @@
 import { Resolver, Query, Mutation, Args, ID } from '@nestjs/graphql';
 import { StatisticService } from '../services/statistic.service';
-import { Statistic } from '../entities/statistic.entity';
+import { Statistic } from '../dto/statistic.object';
 import { MutateStatisticInput } from '../dto/mutate-statistic.input';
 import { UserInput } from 'src/user/dto/user.input';
 import { CurrentUser } from 'src/global/decorators/current-user';
@@ -13,31 +13,34 @@ export class StatisticResolver {
   async saveStatistic(
     @CurrentUser() user: UserInput,
     @Args('saveStatisticInput') saveStatisticInput: MutateStatisticInput,
-  ) {
+  ): Promise<boolean> {
     if (user.id === undefined) {
       throw new ForbiddenException();
     }
-    await this.statisticService.create(saveStatisticInput, user.id);
-    return true;
+    return await this.statisticService.create(saveStatisticInput, user.id);
   }
 
   @Query(() => Statistic, { name: 'statistic' })
-  findOne(@Args('userId', { type: () => ID }) userId: string) {
-    return this.statisticService.findOne(userId);
+  async findOne(
+    @Args('userId', { type: () => ID }) userId: string,
+  ): Promise<Statistic> {
+    return await this.statisticService.findOne(userId);
   }
 
   @Mutation(() => Statistic)
-  updateStatistic(
+  async updateStatistic(
     @Args('updateStatisticInput') updateStatisticInput: MutateStatisticInput,
-  ) {
-    return this.statisticService.update(
+  ): Promise<Statistic> {
+    return await this.statisticService.update(
       updateStatisticInput.userId,
       updateStatisticInput,
     );
   }
 
-  @Mutation(() => Statistic)
-  removeStatistic(@Args('userId', { type: () => ID }) userId: string) {
-    return this.statisticService.remove(userId);
+  @Mutation(() => Boolean)
+  async removeStatistic(
+    @Args('userId', { type: () => ID }) userId: string,
+  ): Promise<boolean> {
+    return await this.statisticService.remove(userId);
   }
 }

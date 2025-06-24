@@ -1,25 +1,25 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Inject, Injectable } from '@nestjs/common';
 import { OAuthorizationError } from '../../common/errors/oauth.errors';
 import {
   OAuth2AuthResponse,
   OAuth2TokenResponse,
   OAuth2AuthOptions,
 } from '../../common/interfaces/oauth.interface';
-import { SpotifyToken } from 'src/auth/entities/spotify-token.entity';
 import { createSpotifyAuthConfig } from 'src/auth/providers/spotify/spotify.auth.config';
 import { OAuth2Service } from 'src/auth/core/services/oauth2.service';
 import { ConfigService } from '@nestjs/config';
 import { SPOTIFY_OAUTH_SCOPES } from 'src/auth/common/constants/oauth-scope.constant';
+import { UserService } from 'src/user/services/user.service';
+import { Firestore } from '@google-cloud/firestore';
 
 @Injectable()
 export class SpotifyAuthService extends OAuth2Service {
   private readonly config = createSpotifyAuthConfig(this.configService);
   constructor(
-    @InjectRepository(SpotifyToken)
-    private readonly spotifyTokenRepository: Repository<SpotifyToken>,
     private readonly configService: ConfigService,
+    private readonly userService: UserService,
+    @Inject('FIRESTORE')
+    private readonly firestore: Firestore,
   ) {
     super();
   }
@@ -73,9 +73,13 @@ export class SpotifyAuthService extends OAuth2Service {
       const tokens = await response.json();
 
       if (userId && tokens.refresh_token) {
-        const result = await this.spotifyTokenRepository.save({
+        await this.userService.update({
           userId,
-          refreshToken: tokens.refresh_token,
+          spotifyToken: {
+            refreshToken: tokens.refresh_token,
+            expiryDate: tokens.expires_in,
+            tokenType: tokens.token_type,
+          },
         });
       }
 
@@ -96,10 +100,12 @@ export class SpotifyAuthService extends OAuth2Service {
    * @returns OAuth2TokenResponse
    */
   async refreshAccessToken(userId: string): Promise<OAuth2TokenResponse> {
-    try {
-      const credentials = await this.spotifyTokenRepository.findOne({
-        where: { userId },
-      });
+    return await this.firestore.runTransaction(async (transaction) => {
+      const credentials = await this.userService.findOne(
+        userId,
+        ['spotifyToken'],
+        transaction,
+      );
 
       if (!credentials) {
         throw new OAuthorizationError('Refresh token not found');
@@ -107,7 +113,7 @@ export class SpotifyAuthService extends OAuth2Service {
 
       const params = new URLSearchParams({
         grant_type: 'refresh_token',
-        refresh_token: credentials.refreshToken,
+        refresh_token: credentials.spotifyToken.refreshToken,
       });
 
       const response = await fetch(this.config.tokenEndpoint, {
@@ -130,9 +136,17 @@ export class SpotifyAuthService extends OAuth2Service {
 
       const newCredentials = await response.json();
 
-      await this.spotifyTokenRepository.update(userId, {
-        refreshToken: newCredentials.refresh_token,
-      });
+      await this.userService.update(
+        {
+          userId,
+          spotifyToken: {
+            refreshToken: newCredentials.refresh_token,
+            expiryDate: newCredentials.expires_in,
+            tokenType: newCredentials.token_type,
+          },
+        },
+        transaction,
+      );
 
       return {
         access_token: newCredentials.access_token,
@@ -140,9 +154,7 @@ export class SpotifyAuthService extends OAuth2Service {
         expires_in: newCredentials.expires_in,
         refresh_token: newCredentials.refresh_token,
       };
-    } catch (error) {
-      throw new OAuthorizationError('Failed to refresh access token');
-    }
+    });
   }
 
   /**
@@ -150,6 +162,17 @@ export class SpotifyAuthService extends OAuth2Service {
    * @param userId - user id
    */
   async signOut(userId: string): Promise<void> {
-    await this.spotifyTokenRepository.delete({ userId });
+    try {
+      await this.userService.update({
+        userId,
+        spotifyToken: {
+          refreshToken: null,
+          expiryDate: 0,
+          tokenType: null,
+        },
+      });
+    } catch (error) {
+      throw new OAuthorizationError('Failed to sign out');
+    }
   }
 }

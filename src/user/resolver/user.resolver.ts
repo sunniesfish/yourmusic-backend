@@ -3,11 +3,7 @@ import { UserService } from '../services/user.service';
 import { UpdateUserInput } from '../dto/update-user.input';
 import { FieldNode, GraphQLResolveInfo } from 'graphql';
 import { EXCLUDED_USER_FIELDS } from '../constants/field-restrictions';
-import {
-  ForbiddenException,
-  UnauthorizedException,
-  UseFilters,
-} from '@nestjs/common';
+import { ForbiddenException, UseFilters } from '@nestjs/common';
 import { CurrentUser } from 'src/global/decorators/current-user';
 import { UserInput } from '../dto/user.input';
 import { Auth } from 'src/global/decorators/auth.decorator';

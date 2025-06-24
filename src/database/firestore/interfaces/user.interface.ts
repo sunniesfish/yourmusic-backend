@@ -9,8 +9,8 @@ export interface UserDocument extends User {
   };
   spotifyToken?: {
     refreshToken: string;
-    createdAt: Date;
-    updatedAt: Date;
+    expiryDate: number;
+    tokenType: string;
   };
   youtubeCredentials?: {
     refreshToken: string;

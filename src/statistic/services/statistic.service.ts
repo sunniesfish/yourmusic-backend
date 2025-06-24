@@ -1,35 +1,56 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { MutateStatisticInput } from '../dto/mutate-statistic.input';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Statistic } from '../entities/statistic.entity';
-import { Repository } from 'typeorm';
-
+import { UserService } from 'src/user/services/user.service';
 @Injectable()
 export class StatisticService {
-  constructor(
-    @InjectRepository(Statistic)
-    private readonly statisticRepository: Repository<Statistic>,
-  ) {}
+  constructor(private readonly userService: UserService) {}
 
   async create(mutateStatisticInput: MutateStatisticInput, userId: string) {
-    const statistic = this.statisticRepository.create({
-      ...mutateStatisticInput,
-      user: { id: userId },
+    await this.userService.update({
+      userId,
+      statistic: {
+        ...mutateStatisticInput,
+        updatedAt: new Date(),
+      },
     });
-    return await this.statisticRepository.save(statistic);
+    return true;
   }
 
   async findOne(userId: string) {
-    return await this.statisticRepository.findOne({
-      where: { user: { id: userId } },
-    });
+    const doc = await this.userService.findOne(userId, ['statistic']);
+    return doc.statistic;
   }
 
   async update(userId: string, mutateStatisticInput: MutateStatisticInput) {
-    return await this.statisticRepository.update(userId, mutateStatisticInput);
+    const updatedObject = {
+      ...mutateStatisticInput,
+      updatedAt: new Date(),
+    };
+    const result = await this.userService.update({
+      userId,
+      statistic: updatedObject,
+    });
+    if (!result) {
+      throw new InternalServerErrorException('Failed to update statistic');
+    }
+
+    return updatedObject;
   }
 
   async remove(userId: string) {
-    return await this.statisticRepository.delete(userId);
+    return await this.userService.update({
+      userId,
+      statistic: {
+        artistRankJson: null,
+        albumRankJson: null,
+        titleRankJson: null,
+        updatedAt: new Date(),
+      },
+    });
   }
 }
