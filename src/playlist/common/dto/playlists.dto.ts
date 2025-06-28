@@ -5,10 +5,31 @@ import {
   InputType,
   createUnionType,
   ArgsType,
+  ID,
 } from '@nestjs/graphql';
 import { ApiDomain } from 'src/auth/common/enums/api-domain.enum';
-import { Playlist } from 'src/playlist/entities/playlist.entity';
 import { PageInfo, PlaylistEdge } from '../interfaces/playlist.interface';
+
+@ObjectType('Playlist')
+export class Playlist {
+  @Field(() => ID)
+  playlistId: string;
+
+  @Field()
+  name: string;
+
+  @Field(() => [PlaylistJSON], { nullable: true })
+  listJson: PlaylistJSON[];
+
+  @Field({ nullable: true })
+  thumbnail: string;
+
+  @Field()
+  createdAt: Date;
+
+  @Field(() => String, { name: 'userId' })
+  userId: string;
+}
 
 /**
  * @description
@@ -32,7 +53,7 @@ export class PlaylistsResponse {
 @InputType()
 export class MutatePlaylistInput {
   @Field({ nullable: true })
-  id?: number;
+  playlistId?: string;
 
   @Field()
   name: string;
@@ -106,16 +127,12 @@ export const ConvertPlaylistResponse = createUnionType({
 export class GetPlaylistsByUserArgs {
   @Field()
   userId: string;
-
-  @Field()
+  @Field(() => String)
   orderBy: 'createdAt' | 'name';
 
   @Field(() => Int)
   limit: number;
 
-  @Field({ nullable: true })
-  after?: string;
-
-  @Field({ nullable: true })
-  afterValue?: string;
+  @Field({ nullable: false })
+  after: string;
 }

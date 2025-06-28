@@ -1,16 +1,21 @@
-import { Playlist } from 'src/playlist/entities/playlist.entity';
-
+import { PlaylistMetadata } from 'src/database/firestore/interfaces/playlist.interface';
 export interface PlaylistsResponse {
-  edges: [PlaylistEdge];
+  edges: PlaylistEdge[];
   pageInfo: PageInfo;
 }
 
 export interface PlaylistEdge {
-  node: Playlist;
-  cursor: String;
+  node: PlaylistMetadata;
+  cursor: string;
 }
 
 export interface PageInfo {
-  hasNextPage: Boolean;
-  endCursor: String;
+  hasNextPage: boolean;
+  endCursor: string | null;
 }
+
+export type PageCursor = {
+  playlistId: string;
+  name: string;
+  createdAt: Date;
+};

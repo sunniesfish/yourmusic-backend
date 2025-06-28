@@ -3,12 +3,10 @@ import {
   Query,
   Mutation,
   Args,
-  Int,
-  Info,
   Context,
+  Info,
 } from '@nestjs/graphql';
 import { PlaylistService } from '../services/playlist.service';
-import { Playlist } from '../../entities/playlist.entity';
 import {
   ConvertedPlaylist,
   PlaylistJSON,
@@ -16,6 +14,7 @@ import {
   AuthRequiredResponse,
   ConvertPlaylistResponse,
   GetPlaylistsByUserArgs,
+  Playlist,
 } from 'src/playlist/common/dto/playlists.dto';
 import { CurrentUser } from 'src/global/decorators/current-user';
 import {
@@ -41,6 +40,7 @@ import {
   OAuthorizationError,
 } from 'src/auth/common/errors/oauth.errors';
 import { OAuth2TokenResponse } from 'src/auth/common/interfaces/oauth.interface';
+import { PlaylistDocument } from 'src/database/firestore/interfaces/playlist.interface';
 @Resolver(() => Playlist)
 export class PlaylistResolver {
   private readonly MAX_RETRY_ATTEMPTS = 3;
@@ -78,11 +78,11 @@ export class PlaylistResolver {
     if (user === undefined || user.id === undefined) {
       throw new ForbiddenException();
     }
-    if (mutatePlaylistInput.id === undefined) {
-      throw new BadRequestException('id is required');
+    if (mutatePlaylistInput.playlistId === undefined) {
+      throw new BadRequestException('playlistId is required');
     }
     const result = await this.playlistService.update(
-      mutatePlaylistInput.id,
+      mutatePlaylistInput.playlistId,
       user.id,
       mutatePlaylistInput,
     );
@@ -111,46 +111,42 @@ export class PlaylistResolver {
         });
       }
     });
-
-    return await this.playlistService.findAll(
-      user.id,
-      args.after,
-      args.limit,
-      args.orderBy,
-      Array.from(playlistFields),
-    );
+    return await this.playlistService.getPlaylistsPageByUser(args);
   }
 
   @Auth(AuthLevel.NONE)
   @Query(() => Playlist, { name: 'playlist' })
   async findOne(
-    @Args('id', { type: () => Int }) id: number,
+    @Args('playlistId', { type: () => String }) playlistId: string,
     @Info() info: GraphQLResolveInfo,
   ) {
     const selections = info.fieldNodes[0].selectionSet?.selections || [];
-    const playlistFields = new Set<string>();
+    const playlistFields = new Set<keyof PlaylistDocument>();
 
     selections.forEach((selection) => {
       if (selection.kind === 'Field' && selection.name.value === 'playlist') {
         selection.selectionSet?.selections.forEach((field) => {
           if (field.kind === 'Field') {
-            playlistFields.add(field.name.value);
+            playlistFields.add(field.name.value as keyof PlaylistDocument);
           }
         });
       }
     });
-    return await this.playlistService.findOne(id, Array.from(playlistFields));
+    return await this.playlistService.findOne(
+      playlistId,
+      Array.from(playlistFields),
+    );
   }
 
   @Mutation(() => Boolean)
   async removePlaylist(
-    @Args('id', { type: () => Int }) id: number,
+    @Args('playlistId', { type: () => String }) playlistId: string,
     @CurrentUser() user: UserInput,
   ) {
     if (user === undefined || user.id === undefined) {
       throw new ForbiddenException();
     }
-    return await this.playlistService.remove(id, user.id);
+    return await this.playlistService.remove(playlistId, user.id);
   }
 
   @Auth(AuthLevel.NONE)

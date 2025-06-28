@@ -21,7 +21,7 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class UserService {
   private readonly SALT_ROUNDS: number;
-  private readonly COLLECTION_NAME = 'users';
+  private readonly USER_COLLECTION = 'users';
   constructor(
     @Inject('FIRESTORE')
     private firestore: Firestore,
@@ -56,7 +56,7 @@ export class UserService {
     sanitizedUpdate: Partial<UserDocument>,
     transaction: Transaction,
   ): Promise<boolean> {
-    const userRef = this.firestore.collection(this.COLLECTION_NAME).doc(userId);
+    const userRef = this.firestore.collection(this.USER_COLLECTION).doc(userId);
 
     if (!(await transaction.get(userRef)).exists) {
       throw new NotFoundException('User not found');
@@ -80,7 +80,7 @@ export class UserService {
     fields: Array<keyof UserDocument>,
     transaction?: Transaction,
   ): Promise<Partial<UserDocument>> {
-    const userRef = this.firestore.collection(this.COLLECTION_NAME).doc(userId);
+    const userRef = this.firestore.collection(this.USER_COLLECTION).doc(userId);
     let doc: DocumentSnapshot<DocumentData>;
 
     if (transaction) {
@@ -132,7 +132,7 @@ export class UserService {
       throw new ConflictException('User with same ID already exists');
     }
     const userRef = this.firestore
-      .collection(this.COLLECTION_NAME)
+      .collection(this.USER_COLLECTION)
       .doc(userServiceData.userId);
 
     const hashedPassword = await bcrypt.hash(
@@ -149,7 +149,7 @@ export class UserService {
   }
 
   async checkId(userId: string, transaction?: Transaction): Promise<boolean> {
-    const userRef = this.firestore.collection(this.COLLECTION_NAME).doc(userId);
+    const userRef = this.firestore.collection(this.USER_COLLECTION).doc(userId);
     let doc: DocumentSnapshot<DocumentData>;
 
     if (transaction) {

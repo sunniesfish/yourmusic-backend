@@ -1,5 +1,6 @@
 import { User } from 'src/user/dto/user.object';
 import { RankType } from '../../../statistic/dto/rank.type';
+import { PlaylistMetadata } from './playlist.interface';
 
 export interface UserDocument extends User {
   password: string;
@@ -25,3 +26,5 @@ export interface UserDocument extends User {
     updatedAt: Date;
   };
 }
+
+export interface UserPlaylistDocument extends PlaylistMetadata {}
