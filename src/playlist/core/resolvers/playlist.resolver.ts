@@ -40,7 +40,7 @@ import {
   OAuthorizationError,
 } from 'src/auth/common/errors/oauth.errors';
 import { OAuth2TokenResponse } from 'src/auth/common/interfaces/oauth.interface';
-import { PlaylistDocument } from 'src/database/firestore/interfaces/playlist.interface';
+import { PlaylistDocument } from 'src/firestore/interfaces/playlist.interface';
 @Resolver(() => Playlist)
 export class PlaylistResolver {
   private readonly MAX_RETRY_ATTEMPTS = 3;

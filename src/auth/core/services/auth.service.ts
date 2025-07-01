@@ -15,7 +15,7 @@ import { SignUpInput } from '../../common/dto/sign-up.input';
 import { UserService } from '../../../user/services/user.service';
 import { UpdateUserInput } from 'src/user/dto/update-user.input';
 import { Firestore } from '@google-cloud/firestore';
-import { UserDocument } from 'src/database/firestore/interfaces/user.interface';
+import { UserDocument } from 'src/firestore/interfaces/user.interface';
 @Injectable()
 export class AuthService {
   private readonly SALT_ROUNDS: number;

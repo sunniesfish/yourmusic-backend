@@ -1,0 +1,84 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: build
+    container_name: yourmusic-backend-dev
+    restart: no
+    ports:
+      - '${PORT}:${PORT}'
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - PORT=${PORT}
+      # Firestore Configuration
+      - GOOGLE_CLOUD_PROJECT_ID=${GOOGLE_CLOUD_PROJECT_ID}
+      - FIRESTORE_EMULATOR_HOST=firestore-emulator:8080
+      # JWT Configuration
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      # CORS Configuration
+      - CORS_ORIGIN=${CORS_ORIGIN}
+      - COOKIE_DOMAIN=${COOKIE_DOMAIN}
+      # Google OAuth Configuration
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
+      - GOOGLE_SCOPE=${GOOGLE_SCOPE}
+      # YouTube API Configuration
+      - YOUTUBE_BASE_URL=${YOUTUBE_BASE_URL}
+      - YOUTUBE_API_LIMIT_PER_SECOND=${YOUTUBE_API_LIMIT_PER_SECOND}
+      - YOUTUBE_API_LIMIT_PER_MINUTE=${YOUTUBE_API_LIMIT_PER_MINUTE}
+      - YOUTUBE_API_LIMIT_QUEUE_SIZE=${YOUTUBE_API_LIMIT_QUEUE_SIZE}
+      - YOUTUBE_BATCH_SIZE=${YOUTUBE_BATCH_SIZE}
+      # Spotify Configuration
+      - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID}
+      - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET}
+      - SPOTIFY_REDIRECT_URI=${SPOTIFY_REDIRECT_URI}
+      - SPOTIFY_API_ENDPOINT=${SPOTIFY_API_ENDPOINT}
+      - SPOTIFY_ADD_SONG_BATCH_SIZE=${SPOTIFY_ADD_SONG_BATCH_SIZE}
+      - SPOTIFY_API_LIMIT_PER_SECOND=${SPOTIFY_API_LIMIT_PER_SECOND}
+      - SPOTIFY_API_LIMIT_PER_MINUTE=${SPOTIFY_API_LIMIT_PER_MINUTE}
+      - SPOTIFY_API_LIMIT_QUEUE_SIZE=${SPOTIFY_API_LIMIT_QUEUE_SIZE}
+      # Worker Configuration
+      - MAX_WORKERS=${MAX_WORKERS}
+      - MAX_BROWSERS_PER_WORKER=${MAX_BROWSERS_PER_WORKER}
+      - MAX_CONCURRENT_PAGES=${MAX_CONCURRENT_PAGES}
+      - WORKER_TIMEOUT=${WORKER_TIMEOUT}
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./.cache:/app/.cache
+    command: npm run start:dev
+    working_dir: /app
+    depends_on:
+      - firestore-emulator
+    networks:
+      - firestore-network
+      - public-network
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+
+  firestore-emulator:
+    image: mtlynch/firestore-emulator
+    container_name: yourmusic-firestore-emulator
+    restart: no
+    environment:
+      - FIRESTORE_PROJECT_ID=${GOOGLE_CLOUD_PROJECT_ID:-yourmusic-dev}
+      - PORT=8080
+    ports:
+      - '8080:8080'
+    networks:
+      - firestore-network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8080']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  firestore-network:
+    driver: bridge
+    internal: true
+  public-network:
+    driver: bridge

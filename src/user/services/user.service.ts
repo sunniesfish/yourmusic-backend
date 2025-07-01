@@ -14,9 +14,9 @@ import {
   Transaction,
 } from '@google-cloud/firestore';
 import { Inject } from '@nestjs/common';
-import { UserDocument } from 'src/database/firestore/interfaces/user.interface';
+import { UserDocument } from 'src/firestore/interfaces/user.interface';
 import { User } from '../dto/user.object';
-import { FirestoreUtil } from 'src/database/firestore/util/utill';
+import { FirestoreUtil } from 'src/firestore/util/utill';
 import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class UserService {

@@ -1,5 +1,5 @@
 import { User } from 'src/user/dto/user.object';
-import { RankType } from '../../../statistic/dto/rank.type';
+import { RankType } from '../../statistic/dto/rank.type';
 import { PlaylistMetadata } from './playlist.interface';
 
 export interface UserDocument extends User {

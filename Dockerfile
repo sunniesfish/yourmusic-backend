@@ -44,12 +44,11 @@ RUN npm ci
 
 COPY . .
 
-# TypeScript 컴파일 실행 (마이그레이션 포함)
+# TypeScript 컴파일 실행 (Firestore 기반)
 RUN npm run build
 
-# 마이그레이션 파일 존재 확인
-RUN ls -la /app/dist/migrations || echo "경고: 마이그레이션 디렉토리를 찾을 수 없습니다. tsconfig.json 확인 필요"
-RUN find /app/dist/migrations -name "*.js" | grep . || echo "경고: 컴파일된 마이그레이션 파일을 찾을 수 없습니다"
+# 빌드 결과 확인 (마이그레이션 관련 파일 제거됨)
+RUN ls -la /app/dist || echo "빌드 완료: Firestore 기반 애플리케이션"
 
 FROM deps AS production
 WORKDIR /app
@@ -58,6 +57,10 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
 ENV PUPPETEER_CACHE_DIR=/.cache/puppeteer
 ENV NODE_ENV=production
+
+# Firestore 환경 설정
+ENV GOOGLE_CLOUD_PROJECT_ID=""
+ENV FIRESTORE_EMULATOR_HOST=""
 
 COPY --from=build /app/package*.json ./
 COPY --from=build /app/dist ./dist

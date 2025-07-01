@@ -24,7 +24,7 @@ import {
 import {
   PlaylistDocument,
   PlaylistMetadata,
-} from 'src/database/firestore/interfaces/playlist.interface';
+} from 'src/firestore/interfaces/playlist.interface';
 import {
   PageCursor,
   PageInfo,

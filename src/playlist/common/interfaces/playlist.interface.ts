@@ -1,4 +1,4 @@
-import { PlaylistMetadata } from 'src/database/firestore/interfaces/playlist.interface';
+import { PlaylistMetadata } from 'src/firestore/interfaces/playlist.interface';
 export interface PlaylistsResponse {
   edges: PlaylistEdge[];
   pageInfo: PageInfo;

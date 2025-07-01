@@ -1,4 +1,4 @@
-name: Backend Build and Deploy
+name: Backend Build and Deploy (Firestore)
 
 # Workflow runs when code is pushed to main branch
 on:
@@ -43,21 +43,44 @@ jobs:
         run: |
           gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
 
-      # 5. Build Docker image
+      # 5. Enable Firestore API (if not already enabled)
+      - name: Enable Firestore API
+        run: |
+          gcloud services enable firestore.googleapis.com --project=${{ env.PROJECT_ID }}
+
+      # 6. Verify Firestore database exists
+      - name: Verify Firestore database
+        run: |
+          echo "Checking Firestore database status..."
+          gcloud firestore databases describe --database="(default)" --project=${{ env.PROJECT_ID }} || {
+            echo "Creating Firestore database in Native mode..."
+            gcloud firestore databases create --database="(default)" --location=${{ env.REGION }} --type=firestore-native --project=${{ env.PROJECT_ID }}
+          }
+
+      # 7. Configure Firestore IAM permissions
+      - name: Configure Firestore IAM permissions
+        run: |
+          echo "Configuring Firestore permissions for service account..."
+          gcloud projects add-iam-policy-binding ${{ env.PROJECT_ID }} \
+            --member="serviceAccount:${{ env.SERVICE_ACCOUNT }}" \
+            --role="roles/datastore.user"
+
+      # 8. Build Docker image
       - name: Build Docker image
         run: |
           docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
                        -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:latest \
                        --build-arg PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+                       -f Dockerfile \
                        .
 
-      # 6. Push Docker image to Artifact Registry
+      # 9. Push Docker image to Artifact Registry
       - name: Push Docker image
         run: |
           docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:latest
 
-      # 7. Get latest secret version
+      # 10. Get latest secret version
       - name: Get latest secret version
         id: get_secret_version
         run: |
@@ -66,22 +89,7 @@ jobs:
           echo "Latest secret version: $LATEST_SECRET_VERSION"
           echo "LATEST_SECRET_VERSION=${LATEST_SECRET_VERSION}" >> $GITHUB_OUTPUT
 
-      # 8. Run migrations
-      - name: Execute Cloud Run Job for Migrations
-        run: |
-          gcloud run jobs delete migration-job --region ${{ env.REGION }} --quiet || true
-
-          gcloud run jobs create migration-job \
-            --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
-            --region ${{ env.REGION }} \
-            --vpc-connector ${{ env.VPC_CONNECTOR }} \
-            --set-secrets="/secrets/.env=${{ env.SECRET_NAME }}:${{ steps.get_secret_version.outputs.LATEST_SECRET_VERSION }}" \
-            --command="npm" \
-            --args="run,migration:run:prod"
-
-          gcloud run jobs execute migration-job --region ${{ env.REGION }} --wait
-
-      # 9. Deploy to Cloud Run with VPC connectivity using the latest secret version
+      # 11. Deploy to Cloud Run with Firestore configuration
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy ${{ env.SERVICE_NAME }} \
@@ -91,11 +99,30 @@ jobs:
             --allow-unauthenticated \
             --service-account ${{ env.SERVICE_ACCOUNT }} \
             --set-secrets="/secrets/.env=${{ env.SECRET_NAME }}:${{ steps.get_secret_version.outputs.LATEST_SECRET_VERSION }}" \
-            --vpc-connector ${{ env.VPC_CONNECTOR }} \
-            --vpc-egress=private-ranges-only \
+            --set-env-vars="GOOGLE_CLOUD_PROJECT_ID=${{ env.PROJECT_ID }}" \
+            --set-env-vars="NODE_ENV=production" \
+            --memory=1Gi \
+            --cpu=1 \
+            --max-instances=10 \
             --verbosity=debug
 
-      # 9. Check Cloud Run service logs
+      # 12. Verify Firestore connectivity
+      - name: Verify Firestore connectivity
+        run: |
+          echo "### Verifying Firestore connectivity ###"
+          SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region ${{ env.REGION }} \
+            --format="value(status.url)")
+
+          echo "Service URL: $SERVICE_URL"
+
+          # Wait for service to be ready
+          sleep 30
+
+          # Test basic connectivity (adjust endpoint as needed)
+          curl -f "$SERVICE_URL/health" || echo "Health check endpoint not available"
+
+      # 13. Check Cloud Run service logs
       - name: Check Cloud Run service logs
         if: always()
         run: |
@@ -105,7 +132,7 @@ jobs:
             --format="table(timestamp, severity, textPayload)" \
             --freshness=1h
 
-      # 10. Verify deployment status
+      # 14. Verify deployment status
       - name: Verify deployment status
         if: always()
         run: |
@@ -113,3 +140,13 @@ jobs:
           gcloud run services describe ${{ env.SERVICE_NAME }} \
             --region ${{ env.REGION }} \
             --format="yaml(status)" || true
+
+      # 15. Display Firestore information
+      - name: Display Firestore information
+        if: always()
+        run: |
+          echo "### Firestore Database Information ###"
+          gcloud firestore databases describe --database="(default)" --project=${{ env.PROJECT_ID }} || true
+
+          echo "### Firestore Collections (if any) ###"
+          gcloud firestore collections list --database="(default)" --project=${{ env.PROJECT_ID }} || echo "No collections found or insufficient permissions"

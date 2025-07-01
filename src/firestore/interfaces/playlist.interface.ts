@@ -1,4 +1,4 @@
-import { PlaylistJSON } from '../../../playlist/common/dto/playlists.dto';
+import { PlaylistJSON } from '../../playlist/common/dto/playlists.dto';
 
 export interface PlaylistDocument extends PlaylistMetadata {
   ownerId: string;
