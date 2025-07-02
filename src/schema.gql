@@ -66,13 +66,23 @@ type Mutation {
   updateUser(updateUserInput: UpdateUserInput!): Boolean!
 }
 
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+}
+
 type Playlist {
-  createdAt: DateTime!
+  createdAt: DateTime
   listJson: [PlaylistJSON!]
-  name: String!
-  playlistId: ID!
+  name: String
+  playlistId: ID
   thumbnail: String
-  userId: String!
+  userId: String
+}
+
+type PlaylistEdge {
+  cursor: String!
+  node: Playlist!
 }
 
 type PlaylistJSON {
@@ -90,8 +100,8 @@ input PlaylistJSONInput {
 }
 
 type PlaylistsResponse {
-  edges: [Playlist!]!
-  pageInfo: Int!
+  edges: [PlaylistEdge!]!
+  pageInfo: PageInfo!
 }
 
 type Query {

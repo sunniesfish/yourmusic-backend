@@ -8,42 +8,53 @@ import {
   ID,
 } from '@nestjs/graphql';
 import { ApiDomain } from 'src/auth/common/enums/api-domain.enum';
-import { PageInfo, PlaylistEdge } from '../interfaces/playlist.interface';
 
 @ObjectType('Playlist')
 export class Playlist {
-  @Field(() => ID)
-  playlistId: string;
-
-  @Field()
-  name: string;
-
-  @Field(() => [PlaylistJSON], { nullable: true })
-  listJson: PlaylistJSON[];
+  @Field(() => ID, { nullable: true })
+  playlistId?: string;
 
   @Field({ nullable: true })
-  thumbnail: string;
+  name?: string;
 
-  @Field()
-  createdAt: Date;
+  @Field(() => [PlaylistJSON], { nullable: true })
+  listJson?: PlaylistJSON[];
 
-  @Field(() => String, { name: 'userId' })
-  userId: string;
+  @Field({ nullable: true })
+  thumbnail?: string;
+
+  @Field({ nullable: true })
+  createdAt?: Date;
+
+  @Field(() => String, { name: 'userId', nullable: true })
+  userId?: string;
 }
 
-/**
- * @description
- * 1. PlaylistResponse
- * 2. PlaylistJSON
- * 3. SavePlaylistInput
- */
+@ObjectType('PageInfo')
+export class PageInfo {
+  @Field(() => Boolean)
+  hasNextPage: boolean;
+
+  @Field(() => String, { nullable: true })
+  endCursor: string | null;
+}
+
 @ObjectType('PlaylistsResponse')
 export class PlaylistsResponse {
-  @Field(() => [Playlist])
+  @Field(() => [PlaylistEdge])
   edges: PlaylistEdge[];
 
-  @Field(() => Int)
+  @Field(() => PageInfo)
   pageInfo: PageInfo;
+}
+
+@ObjectType('PlaylistEdge')
+export class PlaylistEdge {
+  @Field(() => Playlist)
+  node: Playlist;
+
+  @Field(() => String)
+  cursor: string;
 }
 
 /**
@@ -127,6 +138,7 @@ export const ConvertPlaylistResponse = createUnionType({
 export class GetPlaylistsByUserArgs {
   @Field()
   userId: string;
+
   @Field(() => String)
   orderBy: 'createdAt' | 'name';
 

@@ -10,7 +10,10 @@ import {
   ConvertedPlaylist,
   GetPlaylistsByUserArgs,
   MutatePlaylistInput,
+  PageInfo,
+  Playlist,
   PlaylistJSON,
+  PlaylistsResponse,
 } from 'src/playlist/common/dto/playlists.dto';
 
 import { YouTubeService } from '../../providers/youtube/youtube.service';
@@ -20,16 +23,13 @@ import {
   Transaction,
   Query,
   DocumentData,
+  DocumentSnapshot,
 } from '@google-cloud/firestore';
 import {
   PlaylistDocument,
   PlaylistMetadata,
 } from 'src/firestore/interfaces/playlist.interface';
-import {
-  PageCursor,
-  PageInfo,
-  PlaylistsResponse,
-} from 'src/playlist/common/interfaces/playlist.interface';
+import { PageCursor } from 'src/playlist/common/interfaces/playlist.interface';
 @Injectable()
 export class PlaylistService {
   private readonly USER_COLLECTION = 'users';
@@ -146,6 +146,7 @@ export class PlaylistService {
 
   async getPlaylistsPageByUser(
     args: GetPlaylistsByUserArgs,
+    fields: Array<keyof PlaylistDocument> = [],
   ): Promise<PlaylistsResponse> {
     const { userId, orderBy, limit, after } = args;
 
@@ -171,45 +172,72 @@ export class PlaylistService {
       }
     }
 
-    const metadataSnapshots = await query.get();
-    const metadataDocs = metadataSnapshots.docs;
+    let shouldFindOne = false;
+    if (fields.includes('listJson') || fields.includes('ownerId')) {
+      shouldFindOne = true;
+    }
 
-    const hasNextPage = metadataDocs.length > limit;
-    const docs = hasNextPage ? metadataDocs.slice(0, limit) : metadataDocs;
+    return await this.firestore.runTransaction(async (transaction) => {
+      const metadataSnapshots = await transaction.get(query);
+      const metadataDocs = metadataSnapshots.docs;
 
-    const edges = docs.map((doc) => {
-      const data = doc.data();
+      const hasNextPage = metadataDocs.length > limit;
+      const docs = hasNextPage ? metadataDocs.slice(0, limit) : metadataDocs;
+
+      const edges = await Promise.all(
+        docs.map(async (doc) => {
+          const data = doc.data();
+          let nodeData: Playlist;
+
+          if (shouldFindOne) {
+            nodeData = await this.findOne(doc.id, fields, transaction);
+          } else {
+            for (const field of fields) {
+              if (data[field] !== undefined) {
+                (nodeData as any)[field] = data[field];
+              }
+            }
+          }
+
+          return {
+            node: nodeData,
+            cursor: Buffer.from(
+              JSON.stringify({
+                playlistId: doc.id,
+                name: data.name,
+                createdAt: data.createdAt.toISOString(),
+              }),
+            ).toString('base64'),
+          };
+        }),
+      );
+      const pageInfo: PageInfo = {
+        hasNextPage,
+        endCursor: edges.length > 0 ? edges[edges.length - 1].cursor : null,
+      };
+
       return {
-        node: data as PlaylistMetadata,
-        cursor: Buffer.from(
-          JSON.stringify({
-            playlistId: doc.id,
-            name: data.name,
-            createdAt: data.createdAt.toISOString(),
-          }),
-        ).toString('base64'),
+        edges,
+        pageInfo,
       };
     });
-    const pageInfo: PageInfo = {
-      hasNextPage,
-      endCursor: edges.length > 0 ? edges[edges.length - 1].cursor : null,
-    };
-
-    return {
-      edges,
-      pageInfo,
-    };
   }
 
   async findOne(
     playlistId: string,
     fields: Array<keyof PlaylistDocument> = [],
+    transaction?: Transaction,
   ): Promise<Partial<PlaylistDocument>> {
     const playlistRef = this.firestore
       .collection(this.PLAYLIST_COLLECTION)
       .doc(playlistId);
 
-    const playlistDoc = await playlistRef.get();
+    let playlistDoc: DocumentSnapshot<DocumentData>;
+    if (transaction) {
+      playlistDoc = await transaction.get(playlistRef);
+    } else {
+      playlistDoc = await playlistRef.get();
+    }
     if (!playlistDoc.exists) {
       throw new NotFoundException('Playlist not found');
     }
