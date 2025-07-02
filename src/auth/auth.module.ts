@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, Global } from '@nestjs/common';
 import { UserModule } from 'src/user/user.module';
 import { AuthService } from 'src/auth/core/services/auth.service';
 import { JwtModule, JwtService } from '@nestjs/jwt';
@@ -16,6 +16,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { OAuthErrorInterceptor } from 'src/auth/core/interceptors/oauth-error.interceptor';
 import { OAuthInterceptor } from 'src/auth/core/interceptors/oauth.interceptor';
 
+@Global()
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),

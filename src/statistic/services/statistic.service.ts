@@ -1,9 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { MutateStatisticInput } from '../dto/mutate-statistic.input';
 import { UserService } from 'src/user/services/user.service';
 @Injectable()

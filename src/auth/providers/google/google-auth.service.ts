@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { OAuth2Client } from 'google-auth-library';
-import { InjectRepository } from '@nestjs/typeorm';
 import { OAuth2Service } from 'src/auth/core/services/oauth2.service';
 
 import {

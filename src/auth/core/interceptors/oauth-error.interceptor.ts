@@ -5,7 +5,7 @@ import {
   CallHandler,
 } from '@nestjs/common';
 import { GqlExecutionContext } from '@nestjs/graphql';
-import { Observable, throwError, from, of } from 'rxjs';
+import { Observable, throwError, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { Reflector } from '@nestjs/core';
 import { SpotifyAuthService } from 'src/auth/providers/spotify/spotify-auth.service';

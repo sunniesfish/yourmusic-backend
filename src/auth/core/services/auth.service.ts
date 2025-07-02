@@ -2,7 +2,6 @@ import {
   Inject,
   Injectable,
   InternalServerErrorException,
-  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -26,7 +25,6 @@ export class AuthService {
     private readonly firestore: Firestore,
     private readonly jwtService: JwtService,
     private readonly userService: UserService,
-    private readonly logger: Logger,
   ) {
     this.SALT_ROUNDS = parseInt(this.configService.get('SALT_ROUNDS'));
     this.REFRESH_TOKEN_EXPIRATION = this.configService.get(
@@ -120,7 +118,6 @@ export class AuthService {
           tx,
         );
       } catch (error) {
-        this.logger.error(error);
         throw new UnauthorizedException('Invalid refresh token');
       }
 

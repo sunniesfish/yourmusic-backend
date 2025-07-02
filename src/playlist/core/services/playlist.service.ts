@@ -36,9 +36,7 @@ export class PlaylistService {
   private readonly PLAYLIST_COLLECTION = 'playlists';
   private readonly USER_PLAYLIST_COLLECTION = 'userPlaylists';
   constructor(
-    @Inject(forwardRef(() => SpotifyService))
     private readonly spotifyService: SpotifyService,
-    @Inject(forwardRef(() => YouTubeService))
     private readonly youtubeService: YouTubeService,
 
     @Inject('FIRESTORE')

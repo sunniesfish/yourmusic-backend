@@ -2,9 +2,7 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
-"""
-Enum for the API domain
-"""
+"""Enum for the API domain"""
 enum ApiDomain {
   SPOTIFY
   YOUTUBE
@@ -37,9 +35,9 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 scalar DateTime
 
 input MutatePlaylistInput {
-  id: Float
   listJson: [PlaylistJSONInput!]
   name: String!
+  playlistId: String
 }
 
 input MutateStatisticInput {
@@ -53,19 +51,11 @@ type Mutation {
   changePassword(input: ChangePasswordInput!): User!
   checkId(id: String!): Boolean!
   checkPassword(password: String!): Boolean!
-  convertToSpotifyPlaylist(
-    authorizationCode: String
-    listJSON: [PlaylistJSONInput!]!
-    state: String
-  ): ConvertPlaylistResponse!
-  convertToYoutubePlaylist(
-    authorizationCode: String
-    listJSON: [PlaylistJSONInput!]!
-    state: String
-  ): ConvertPlaylistResponse!
+  convertToSpotifyPlaylist(authorizationCode: String, listJSON: [PlaylistJSONInput!]!, state: String): ConvertPlaylistResponse!
+  convertToYoutubePlaylist(authorizationCode: String, listJSON: [PlaylistJSONInput!]!, state: String): ConvertPlaylistResponse!
   readPlaylist(link: String!): [PlaylistJSON!]!
-  removePlaylist(id: Int!): Boolean!
-  removeStatistic(userId: ID!): Statistic!
+  removePlaylist(playlistId: String!): Boolean!
+  removeStatistic(userId: ID!): Boolean!
   savePlaylist(mutatePlaylistInput: MutatePlaylistInput!): Boolean!
   saveStatistic(saveStatisticInput: MutateStatisticInput!): Boolean!
   signIn(signInInput: SignInInput!): SignInResponse!
@@ -78,9 +68,9 @@ type Mutation {
 
 type Playlist {
   createdAt: DateTime!
-  id: ID!
   listJson: [PlaylistJSON!]
   name: String!
+  playlistId: ID!
   thumbnail: String
   userId: String!
 }
@@ -100,20 +90,20 @@ input PlaylistJSONInput {
 }
 
 type PlaylistsResponse {
-  playlists: [Playlist!]!
-  totalPages: Int!
+  edges: [Playlist!]!
+  pageInfo: Int!
 }
 
 type Query {
-  playlist(id: Int!): Playlist!
-  playlistsPage(limit: Int!, orderBy: String!, page: Int!): PlaylistsResponse!
+  playlist(playlistId: String!): Playlist!
+  playlistsByUser(after: String!, limit: Int!, orderBy: String!, userId: String!): PlaylistsResponse!
   statistic(userId: ID!): Statistic!
   user: User!
 }
 
 input SignInInput {
-  id: String!
   password: String!
+  userId: String!
 }
 
 type SignInResponse {
@@ -122,18 +112,17 @@ type SignInResponse {
 }
 
 input SignUpInput {
-  id: String!
   name: String!
   password: String!
   profileImg: String
+  userId: String!
 }
 
 type Statistic {
-  albumRankJson: StatisticRank!
-  artistRankJson: StatisticRank!
-  titleRankJson: StatisticRank!
-  updatedAt: DateTime!
-  userId: ID!
+  albumRankJson: StatisticRank
+  artistRankJson: StatisticRank
+  titleRankJson: StatisticRank
+  updatedAt: DateTime
 }
 
 type StatisticRank {
@@ -149,13 +138,14 @@ input StatisticRankInput {
 }
 
 input UpdateUserInput {
-  id: String!
   name: String
+  password: String
   profileImg: String
+  userId: String!
 }
 
 type User {
-  id: ID!
   name: String!
   profileImg: String
+  userId: ID!
 }

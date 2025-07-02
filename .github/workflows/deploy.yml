@@ -15,7 +15,6 @@ env:
   SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
   SA_KEY: ${{ secrets.GCP_SA_KEY }}
   SECRET_NAME: ${{ secrets.GCP_ENV_SECRET_NAME }}
-  VPC_CONNECTOR: ${{ secrets.GCP_VPC_CONNECTOR }}
 
 jobs:
   deploy:
