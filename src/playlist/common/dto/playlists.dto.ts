@@ -145,6 +145,6 @@ export class GetPlaylistsByUserArgs {
   @Field(() => Int)
   limit: number;
 
-  @Field({ nullable: false })
+  @Field({ nullable: true })
   after: string;
 }
